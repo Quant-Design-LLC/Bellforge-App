@@ -1,0 +1,25 @@
+{
+  "name": "bellforge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BellForge: kettlebell workouts, muscle maps, challenges and meal plans",
+  "scripts": {
+    "sync": "npx cap sync",
+    "ios": "npx cap sync ios && npx cap open ios",
+    "android": "npx cap sync android && npx cap open android",
+    "assets": "npx capacitor-assets generate --assetPath assets",
+    "serve": "npx http-server www -p 8080"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0"
+  }
+}

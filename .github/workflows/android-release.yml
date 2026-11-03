@@ -1,0 +1,58 @@
+name: Android → signed AAB
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install and sync Capacitor
+        run: |
+          npm ci
+          npx cap sync android
+
+      - name: Restore upload keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/upload.jks"
+
+      - name: Build signed release bundle
+        working-directory: android
+        env:
+          BF_KEYSTORE_PATH: ${{ runner.temp }}/upload.jks
+          BF_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BF_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          BF_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          BF_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bellforge-release-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+
+      # Optional: publish straight to Play Console internal testing.
+      # Add a Google Play service account JSON as the PLAY_SERVICE_ACCOUNT_JSON secret, then uncomment.
+      # - uses: r0adkll/upload-google-play@v1
+      #   with:
+      #     serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+      #     packageName: com.quants.bellforge
+      #     releaseFiles: android/app/build/outputs/bundle/release/*.aab
+      #     track: internal
+      #     status: completed

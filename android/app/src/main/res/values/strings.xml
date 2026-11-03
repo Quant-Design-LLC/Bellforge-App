@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BellForge</string>
+    <string name="title_activity_main">BellForge</string>
+    <string name="package_name">com.quants.bellforge</string>
+    <string name="custom_url_scheme">com.quants.bellforge</string>
+</resources>
