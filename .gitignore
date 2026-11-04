@@ -14,3 +14,4 @@ android/local.properties
 ios/App/build/
 android/app/release/
 android/.idea/
+website/site-repo/
