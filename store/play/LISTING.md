@@ -76,7 +76,7 @@ Always warm up, use a kettlebell weight you can control with good form, and chec
 
 **App category:** Health & Fitness
 **Tags:** Play lets you pick up to 5 tags from its own list (under **Store settings > Tags**). Choose the closest matches to: Workout, Strength training, Home workout, HIIT and Personal trainer.
-**Contact email:** michael.valente@quant-design.com
+**Contact email:** development@quant-design.com
 **Website:** optional (leave blank if you don't have one yet)
 **Privacy policy URL:** see section 3
 
@@ -134,7 +134,7 @@ Both stores require a public URL. The policy is at `docs/privacy-policy.html` in
 **App access:** All functionality is available without special access.
 
 **Content rating** (IARC questionnaire)
-- Email: michael.valente@quant-design.com
+- Email: development@quant-design.com
 - Category: **All Other App Types**
 - Violence, sexuality, language, controlled substances, gambling: **No** to all
 - Does the app allow users to interact or exchange content? **No** (friends and leaderboards are sample data in this beta)
