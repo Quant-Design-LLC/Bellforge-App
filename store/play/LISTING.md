@@ -141,6 +141,8 @@ Both stores require a public URL. The policy is at `docs/privacy-policy.html` in
 - Does the app share the user's current location? **No**
 - Does the app allow purchase of digital goods? **No**
 - Expected result: **Everyone / PEGI 3**
+- **Live rating issued Nov 4, 2026.** IARC Global Rating ID: `98513ae9-772c-8626-8fc0-3fbaa870758e`
+- **Redo the questionnaire** when real friends, chat or leaderboards go live: "users can interact" changes to Yes.
 
 **Target audience and content**
 - Target age group: **18 and over**
