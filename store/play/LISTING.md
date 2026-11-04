@@ -1,57 +1,81 @@
 # BellForge: Google Play open testing
 
-Everything Play Console asks for to publish BellForge as a public beta (Open testing). Copy each section into the matching Play Console page.
+Everything Play Console asks for to publish BellForge as a public beta (Open testing), written for search, plus the App Store version and a plan for growing search ranking. Copy each section into the matching Play Console page.
 
 ---
 
 ## 1. Store listing (Grow users > Store presence > Main store listing)
 
-**App name** (30 max)
+Written for search. Google Play ranks apps using the **title, short description and full description**, so the main search terms appear in all three, worded naturally. Google penalizes keyword stuffing.
+
+**Target search terms**
+- **Primary:** kettlebell workout, kettlebell workouts, kettlebell
+- **Secondary:** home workout, kettlebell workout plan, workout timer, strength training
+- **Long-tail (less competition, where a new app can rank):** kettlebell muscle map, HIIT timer, EMOM, AMRAP, kettlebell swing, Turkish get-up, kettlebell challenge, fitness challenge with friends, beginner kettlebell, calisthenics, bodyweight workout, meal plan
+
+**App name** (30 max, the strongest ranking signal)
 ```
 BellForge: Kettlebell Workouts
 ```
 
-**Short description** (80 max)
+**Short description** (80 max, the second strongest signal)
 ```
-Kettlebell workouts with muscle maps, a guided timer and friend challenges.
+Kettlebell home workouts with muscle maps, a HIIT timer & fitness challenges
 ```
 
-**Full description** (4,000 max)
+**Full description** (4,000 max, fully indexed on Google Play)
 ```
-BellForge is a kettlebell training app built around one idea: show up, train well, and keep each other accountable.
+KETTLEBELL WORKOUTS FOR HOME, WITH A MUSCLE MAP FOR EVERY EXERCISE
 
-SEE EVERY MUSCLE YOU WORK
-Every move comes with a muscle map that highlights the primary and supporting muscles, plus form cues and the most common mistakes to avoid. 48 moves in all, from the deadlift and swing to the Turkish get-up, snatch and clean & jerk.
+BellForge is a kettlebell workout app for strength training at home or in the gym. Follow a kettlebell workout plan, time every session with a built-in HIIT timer, see exactly which muscles each move works, and stay accountable with fitness challenges you do with friends.
 
-200 KETTLEBELL WORKOUTS
-Beginner, intermediate and advanced sessions in six formats: circuits, EMOMs, AMRAPs, ladders, Tabatas and complexes. Filter by level, focus, length and equipment, and save your favorites for offline use.
+MUSCLE MAP FOR EVERY EXERCISE
+Every kettlebell exercise comes with a muscle map that highlights the primary and supporting muscles worked, plus form cues and the most common mistakes to avoid. Learn the kettlebell swing, goblet squat, deadlift, clean, press, snatch, Turkish get-up, windmill and more: 48 moves with clear muscle maps.
 
-A GUIDED SESSION TIMER
-Start any workout and BellForge walks you through it step by step: work and rest phases, audio countdowns, round tracking and the muscle map for the move you're on.
+200 KETTLEBELL WORKOUTS, BEGINNER TO ADVANCED
+Beginner kettlebell workouts, intermediate sessions and advanced kettlebell training, all in one library. Choose full body workouts, lower body, upper body, core or conditioning, in six formats: circuits, EMOM, AMRAP, ladders, Tabata and kettlebell complexes. Filter by level, focus, length and equipment, and save workouts for offline training.
 
-PROGRAMS THAT BUILD
-Follow a multi-week plan that gets harder week by week: Beginner Foundations, Swing to Snatch, Strength Builder, Conditioning Engine, Get-Up & Core and Advanced Iron.
+HIIT, EMOM & AMRAP WORKOUT TIMER
+Start any kettlebell workout and the guided workout timer walks you through it: work and rest intervals, audio countdowns, round tracking for AMRAPs, and the muscle map for the exercise you're on. Build your own interval timer for swings or any move.
 
-CHALLENGE YOUR FRIENDS
-Pick from 55 ready-made challenges, or build your own. Rank by sessions, minutes, streaks, team totals, weekends or specific moves, then invite friends and keep score together.
+KETTLEBELL WORKOUT PLANS AND PROGRAMS
+Follow a multi-week kettlebell program that gets harder week by week:
+- Beginner Foundations (4 weeks)
+- Swing to Snatch (6 weeks)
+- Strength Builder (8 weeks)
+- Conditioning Engine for fat loss (4 weeks)
+- Get-Up & Core (4 weeks)
+- Advanced Iron (8 weeks)
 
-NO BELL? NO PROBLEM
-A bonus library of 100 bodyweight workouts and 3 bodyweight programs, including Travel Training and First Pull-Up, keeps your streak alive on days without your kettlebell. Every move works with things you already have at home.
+FITNESS CHALLENGES WITH FRIENDS
+Accountability makes training stick. Pick from 55 ready-made fitness challenges, or build your own: most sessions, most minutes, longest streak, team totals, weekend warrior, or skill challenges like the Get-Up Ladder and Swing Specialist. Invite friends, track the leaderboard and keep each other consistent with streaks and weekly goals.
 
-MEAL PLANS FOR YOUR GOAL
-Set your goal and stats to get daily calorie and protein targets, then build a week of prepped meals that fits your diet and allergies. Monthly meal delivery is coming soon.
+BODYWEIGHT & CALISTHENICS BONUS
+No kettlebell today? 100 bodyweight workouts and calisthenics programs keep your streak alive: push-ups, squats, planks, burpees, pistol squats, pull-ups and more, plus Travel Training and First Pull-Up programs. Every move works with a chair, couch, table or wall at home.
 
-GEAR SHOP
-Need a kettlebell, pull-up bar or mat? Find the basics right in the app.
+MEAL PLAN & MACRO TARGETS
+Set your goal (lose fat, maintain or build muscle) to get daily calorie and protein targets, then build a weekly meal plan that fits your diet and allergies. Monthly prepped-meal delivery is coming soon.
 
-BETA NOTE
-BellForge is in public beta. Your workouts and progress are saved on your device. Friends, leaderboards and meal delivery use sample data while we build accounts and syncing. We'd love your feedback: tell us what's confusing, what's missing and what you'd pay for.
+GEAR GUIDE
+New to kettlebell training? Find the right kettlebell weight to start with, plus a pull-up bar, mat and other basics.
 
-Always warm up, use a weight you can control with good form, and talk to your doctor before starting a new training program.
+WHY BELLFORGE
+- Kettlebell workouts at home with just one bell
+- A muscle map for every exercise
+- Kettlebell workout plans that progress
+- HIIT, EMOM, AMRAP and Tabata workout timer
+- Fitness challenges and streaks with friends
+- Bodyweight and calisthenics workouts when you don't have a bell
+- Works offline, with no ads
+
+PUBLIC BETA
+BellForge is in public beta. Your workouts and progress are saved on your device. Friends, leaderboards and meal delivery use sample data while we build accounts and syncing. Tell us what you'd like next; your feedback shapes the app.
+
+Always warm up, use a kettlebell weight you can control with good form, and check with your doctor before starting a new training program.
 ```
 
 **App category:** Health & Fitness
-**Tags:** Fitness, Workout, Strength training (pick from Play's list)
+**Tags:** Play lets you pick up to 5 tags from its own list (under **Store settings > Tags**). Choose the closest matches to: Workout, Strength training, Home workout, HIIT and Personal trainer.
 **Contact email:** michael.valente@quant-design.com
 **Website:** optional (leave blank if you don't have one yet)
 **Privacy policy URL:** see section 3
@@ -136,6 +160,53 @@ Both stores require a public URL. The policy is at `docs/privacy-policy.html` in
 - The app does not diagnose, treat or provide medical advice.
 
 **Government apps, financial features, news:** No.
+
+---
+
+## 5. Apple App Store listing (for the iOS release)
+
+Apple ranks on the **app name, subtitle, keyword field and screenshot text**, but not the description. Apple combines words across these fields, so don't repeat a word in two of them.
+
+**App name** (30)
+```
+BellForge: Kettlebell Workouts
+```
+
+**Subtitle** (30)
+```
+Home Workout Plans & Timer
+```
+
+**Keywords** (100, comma-separated, no spaces, no words already in the name or subtitle)
+```
+swing,hiit,emom,amrap,strength,training,muscle,map,calisthenics,bodyweight,challenge,program,kb
+```
+
+**Promotional text** (170, can be changed any time without review)
+```
+Public beta: 200 kettlebell workouts, muscle maps for every exercise, a HIIT timer and 55 fitness challenges to do with friends.
+```
+
+**Description:** use the Google Play full description above.
+
+**Category:** Health & Fitness (primary), Sports (secondary)
+
+**Screenshots:** the same 8 files. Each headline is written around a search term ("Muscle map for every exercise", "HIIT, EMOM & AMRAP timer", "Fitness challenges with friends"), because Apple now reads screenshot text for search. iPhone screenshots need the 6.9-inch size (1320×2868 or 1290×2796); ask Claude to export that size when you're ready for iOS.
+
+---
+
+## 6. Growing search ranking after launch
+
+A new app has no reviews or download history, which both stores weigh heavily. These are the levers you control:
+
+1. **Ratings and reviews.** Review text is indexed on Google Play, so reviews that say "kettlebell" and "timer" help ranking. Add an in-app review prompt (Google Play In-App Review / Apple's review request) after a user finishes their 3rd workout, when they're happiest. *(Not built yet. Ask Claude to add it.)*
+2. **Reply to every review.** Replies are indexed on Google Play too. Answer naturally, for example: "Glad the kettlebell swing timer helps!"
+3. **Install velocity.** Downloads in a short window lift ranking. Line up your tester recruiting (Reddit, Facebook groups, gyms) to land in the same week the beta goes live, not spread over a month.
+4. **Retention and stability.** Google weighs crash rate and how many users keep the app. Fix crashes first; streaks and challenges help people come back.
+5. **Update every 2–4 weeks.** Regular updates signal an active app. Change the release notes each time and mention new workouts or challenges.
+6. **English variants.** Add **English (United Kingdom)**, **English (Australia)** and **English (Canada)** listings with the same text (Store presence > Manage translations). This is a quick way to show up properly in those countries.
+7. **Store listing experiments.** Once you have a few hundred visitors a week, A/B test the icon, first screenshot and short description under **Grow users > Store listing experiments**.
+8. **Promo content.** After launch, use Play's **Promotional content** (and Apple's In-App Events) for seasonal challenges, such as a "New Year Kettlebell Challenge". These show up in search and browse.
 
 ---
 
