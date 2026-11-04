@@ -1,8 +1,8 @@
 name: Android → signed AAB
 
+# Manual only: Android release builds are made in Android Studio.
+# To run it, add the keystore secrets (see README), then Actions > Android > Run workflow.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
