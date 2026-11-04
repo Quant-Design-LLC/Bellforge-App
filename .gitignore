@@ -12,3 +12,5 @@ android/build/
 android/local.properties
 *.bak
 ios/App/build/
+android/app/release/
+android/.idea/
