@@ -241,7 +241,7 @@ pre.payload{background:var(--surface-2);border:1px solid var(--line);border-radi
   <nav class="rail" aria-label="Main">
     <div class="brand"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M10 12 Q10 3 16 3 Q22 3 22 12" style="fill:none;stroke:var(--accent);stroke-width:3.2;stroke-linecap:round"/><circle cx="16" cy="20" r="10" style="fill:var(--accent)"/></svg><b>BellForge</b></div>
     <div id="railnav" class="stack" style="gap:4px"></div>
-    <div class="foot">Beta. Friends, invites and meal delivery are simulated. <button class="btn ghost sm" data-act="reset" style="padding:4px 0">Reset demo data</button></div>
+    <div class="foot">Beta. Friend invites and meal delivery are coming soon. <button class="btn ghost sm" data-act="reset" style="padding:4px 0">Reset app data</button></div>
   </nav>
   <main id="main"></main>
 </div>
@@ -347,6 +347,13 @@ const EX = [
  {id:'rr',name:'Renegade Row',lv:3,focus:'Core',bells:'two',dbl:true,sided:true,spr:2.5,frames:[['PLANK','PLANKARM','PLANKARM'],['PLANK','PLANKROW','PLANKARM']],
   cues:['Feet wide for balance','Hips square to the floor','Row to the hip and set the bell down quietly'],miss:['Hips rotating open','Sagging lower back']}
 ];
+// ---- Double-bell moves for the classics ----
+EX.push(
+ {id:'dcl',name:'Double Clean',lv:3,focus:'Full body',bells:'two',dbl:true,spr:2.5,frames:[['HINGE_HIGH','HIKE','HIKE'],['STAND','RACK','RACK']],
+  cues:['Hike both bells between your legs','Drive the hips and keep your elbows close','Catch both bells softly in the rack'],miss:['Bells flipping over and banging your forearms','Leaning back to catch the bells']},
+ {id:'dpr',name:'Double Press',lv:3,focus:'Upper body',bells:'two',dbl:true,spr:3,frames:[['STAND','RACK','RACK'],['STAND','OVER','OVER']],
+  cues:['Start from a solid double rack','Press both bells up together, ribs down','Lock out with your biceps by your ears'],miss:['Leaning back to finish the press','Flaring the elbows wide']}
+);
 // ---- Bodyweight bonus moves ----
 EX.push(
  {id:'bsq',bw:true,name:'Air Squat',lv:1,focus:'Lower body',spr:2.5,cues:['Feet shoulder-width, toes slightly out','Sit back and down, chest up','Drive up through the whole foot'],miss:['Heels lifting','Knees caving inward']},
@@ -394,6 +401,8 @@ function withSwaps(w){ if(S.prefs.bar || !w.items.some(i=>EXM[i.ex].needsBuy)) r
   const swapped=[]; const items=w.items.map(i=>{ const e=EXM[i.ex]; if(!e.needsBuy) return i; swapped.push(e.name+' → '+EXM[e.swap].name); return {...i,ex:e.swap,reps:i.reps?i.reps*2:i.reps}; });
   return {w:{...w,items},swapped}; }
 const MUSC = {
+ dcl:[['Glutes','Hamstrings','Traps'],['Lats','Biceps','Forearms','Abs']],
+ dpr:[['Shoulders','Triceps'],['Upper chest','Traps','Abs','Glutes']],
  bsq:[['Quads','Glutes'],['Hamstrings','Adductors','Abs']],
  pu:[['Chest','Triceps'],['Front delts','Abs']],
  gb:[['Glutes','Hamstrings'],['Lower back','Abs']],
@@ -458,7 +467,8 @@ const FMT = {
   amrap:{name:'AMRAP',desc:'As many rounds as possible before the clock runs out. Log each round.'},
   ladder:{name:'Ladder',desc:'Reps climb each rung. Rest between rungs.'},
   tabata:{name:'Tabata',desc:'20 seconds on, 10 seconds off, 8 rounds per exercise.'},
-  complex:{name:'Complex',desc:'One bell, no setting it down: flow from move to move, then rest.'}
+  complex:{name:'Complex',desc:'One bell, no setting it down: flow from move to move, then rest.'},
+  classic:{name:'Classic',desc:''}
 };
 
 /* ---------- 200 curated workouts, generated deterministically ---------- */
@@ -470,7 +480,7 @@ function pick(r,arr){ return arr[Math.floor(r()*arr.length)]; }
 function weighted(r,obj){ const tot=Object.values(obj).reduce((a,b)=>a+b,0); let x=r()*tot; for(const k in obj){ x-=obj[k]; if(x<0) return k; } return Object.keys(obj)[0]; }
 
 function buildWorkouts(){
-  const out=[]; const seen={};
+  const out=[]; const usedNames=new Set(); const usedCombos=new Set();
   for(let i=0;i<300;i++){
     const bw=i>=200, j=i-200;
     const r=rng(9001+i*7919); const lv=bw?(j<35?1:j<70?2:3):(i<70?1:i<140?2:3);
@@ -479,9 +489,14 @@ function buildWorkouts(){
     if(fmt==='tabata') pool=pool.filter(e=>!e.noFast);
     if(fmt==='complex') pool=pool.filter(e=>!e.dbl && e.unit!=='sec');
     const n = fmt==='tabata'||fmt==='emom' ? 2+Math.floor(r()*3) : 3+Math.floor(r()*3);
-    const chosen=[];
-    if(lv>1){ const top=pool.filter(e=>e.lv===lv); if(top.length) chosen.push(pick(r,top)); }
-    let guard=0; while(chosen.length<n && guard++<60){ const e=pick(r,pool); if(!chosen.includes(e)) chosen.push(e); }
+    let chosen=[];
+    for(let attempt=0; attempt<40; attempt++){
+      chosen=[];
+      if(lv>1){ const top=pool.filter(e=>e.lv===lv); if(top.length) chosen.push(pick(r,top)); }
+      let guard=0; while(chosen.length<n && guard++<60){ const e=pick(r,pool); if(!chosen.includes(e)) chosen.push(e); }
+      const key=(bw?'b':'k')+lv+':'+chosen.map(e=>e.id).sort().join(',');
+      if(!usedCombos.has(key)){ usedCombos.add(key); break; }
+    }
     const base = [0,8,10,12][lv] + Math.floor(r()*3);
     const items = chosen.map(e=>{
       if(e.unit==='sec') return {ex:e.id, secs:Math.min(e.maxSec||99,[0,20,30,40][lv])};
@@ -501,7 +516,9 @@ function buildWorkouts(){
     w.focus = (Object.keys(foci).length>=3 && top[0][1]<2) ? 'Full body' : top[0][0];
     w.equip = bw ? 'Bodyweight' : chosen.some(e=>e.dbl) ? 'Double bells' : 'Single bell';
     w.gear = [...new Set(chosen.map(e=>e.gear).filter(Boolean))];
-    let nm = pick(r,bw?BWA:WA)+' '+pick(r,WB); seen[nm]=(seen[nm]||0)+1; w.name = nm + (seen[nm]<ROMAN.length ? ROMAN[seen[nm]] : ' '+seen[nm]);
+    const A=bw?BWA:WA; let ai=Math.floor(r()*A.length), bi=Math.floor(r()*WB.length), nm='';
+    for(let k=0;k<A.length*WB.length;k++){ nm=A[(ai+Math.floor(k/WB.length))%A.length]+' '+WB[(bi+k)%WB.length]; if(!usedNames.has(nm)) break; }
+    usedNames.add(nm); w.name=nm;
     w.steps = buildSteps(w);
     w.secs = w.steps.reduce((a,s)=>a+s.secs,0) - 10;
     w.dur = Math.max(5,Math.round(w.secs/60));
@@ -515,6 +532,7 @@ function workSecs(ex,item,repsOverride){
   return Math.max(10,Math.round(reps*(ex.spr||2.5)*(ex.sided?2:1)));
 }
 function rxText(ex,item,w){
+  if(item.txt) return item.txt;
   const side = ex.sided?' / side':'';
   if(w && w.fmt==='tabata') return '20s on · 10s off × 8';
   if(w && w.fmt==='ladder' && !item.secs){ return w.rungs.map(x=>Math.max(1,Math.round(x*(ex.scale||1)))).join('-')+' reps'+side; }
@@ -540,6 +558,65 @@ function buildSteps(w){
   return S;
 }
 const WORKOUTS = buildWorkouts();
+
+/* ---------- Kettlebell Classics: hand-built, done the way they're usually done ---------- */
+function classicSteps(def){
+  const S=[{k:'ready',secs:10,label:'Get ready',ex:def.items[0].ex}];
+  const wk=(ex,reps,round,label,target,secs)=>{ const e=EXM[ex]; const it={reps}; S.push({k:'work',ex,secs:secs||(workSecs(e,it,reps)+8),label:label||e.name,target:target||(reps+(reps===1?' rep':' reps')+(e.sided?' / side':'')),round}); };
+  const rs=(secs,ex,label)=>S.push({k:'rest',secs,label:label||'Rest',ex});
+  def.build(wk,rs,S);
+  return S;
+}
+const CLASSIC_DEFS=[
+ {name:'Humane Burpee',lv:1,focus:'Full body',credit:'Popularized by Dan John',
+  about:'15 two-hand swings, then goblet squats and push-ups that drop by one each round: 5-4-3-2-1. Move steadily and rest only as long as you need.',
+  score:'For time. Expect roughly 6 to 10 minutes. Try to beat your time with the same bell.',
+  items:[{ex:'sw2',txt:'15 reps × 5 rounds'},{ex:'gs',txt:'5-4-3-2-1'},{ex:'pu',txt:'5-4-3-2-1'}],
+  build:(wk)=>{ for(let n=5,r=1;n>=1;n--,r++){ wk('sw2',15,r); wk('gs',n,r); wk('pu',n,r); } }},
+ {name:'Armor Building Complex',lv:3,focus:'Full body',equip:'Double bells',credit:'Created by Dan John',
+  about:'2 double cleans, 1 double press and 3 double front squats make one round. Keep the bells in your hands for the whole round, then rest as needed and go again.',
+  score:'Count your rounds in 20 minutes and try to add a round or two next time.',
+  items:[{ex:'dcl',txt:'2 reps'},{ex:'dpr',txt:'1 rep'},{ex:'dfs',txt:'3 reps'}],
+  build:(wk,rs,S)=>{ S.push({k:'amrap',secs:20*60,label:'Rounds in 20 min',ex:'dcl'}); }},
+ {name:'One-Bell Armor Complex',lv:2,focus:'Full body',credit:"Adapted from Dan John's Armor Building Complex",
+  about:'The Armor Building Complex for one kettlebell: 2 cleans, 1 press and 3 goblet squats, then switch hands. One round is both sides.',
+  score:'Count your rounds in 20 minutes.',
+  items:[{ex:'cl',txt:'2 / side'},{ex:'pr',txt:'1 / side'},{ex:'gs',txt:'3 per side'}],
+  build:(wk,rs,S)=>{ S.push({k:'amrap',secs:20*60,label:'Rounds in 20 min',ex:'cl'}); }},
+ {name:'The Coyote',lv:2,focus:'Conditioning',credit:'Popularized by Dan John',
+  about:'15 swings, 5 squats and 3 push-ups make one round. The original uses double front squats; this version uses one bell for goblet squats.',
+  score:'10 rounds for time. Build up to 20 rounds.',
+  items:[{ex:'sw2',txt:'15 reps'},{ex:'gs',txt:'5 reps'},{ex:'pu',txt:'3 reps'}],
+  build:(wk)=>{ for(let r=1;r<=10;r++){ wk('sw2',15,r); wk('gs',5,r); wk('pu',3,r); } }},
+ {name:'Squat & Carry Ladder',lv:1,focus:'Lower body',credit:'Popularized by Dan John',
+  about:'Goblet squats from 8 down to 1. After each set, carry the bell about 60 feet in one hand, switching hands every trip.',
+  score:'Move steadily. It takes about 6 to 8 minutes.',
+  items:[{ex:'gs',txt:'8-7-6-5-4-3-2-1'},{ex:'carry',txt:'~60 ft after each set'}],
+  build:(wk)=>{ for(let n=8,r=1;n>=1;n--,r++){ wk('gs',n,r); wk('carry',0,r,'Suitcase Carry',(r%2?'Left':'Right')+' hand · about 60 ft',25); } }},
+ {name:'500 Swing Day',lv:2,focus:'Conditioning',credit:"From Dan John's 10,000 Swing Challenge",
+  about:'Sets of 10, 15, 25 and 50 swings make 100 per round. Between swing sets, press 1, 2, then 3 per side. Five rounds is 500 swings.',
+  score:'Do it 20 times in about a month to complete 10,000 swings. Start the challenge from the Classics section of the challenge library.',
+  items:[{ex:'sw2',txt:'10-15-25-50 × 5 rounds'},{ex:'pr',txt:'1-2-3 / side between sets'}],
+  build:(wk,rs)=>{ for(let r=1;r<=5;r++){ wk('sw2',10,r); wk('pr',1,r); wk('sw2',15,r); wk('pr',2,r); wk('sw2',25,r); wk('pr',3,r); wk('sw2',50,r); if(r<5) rs(60,'sw2','Round rest'); } }},
+ {name:'Clean & Press Ladders',lv:2,focus:'Upper body',credit:'Popularized by Pavel Tsatsouline',
+  about:'Climb a ladder of 1, 2, then 3 clean & presses on each side, resting briefly between rungs. Three ladders make the session.',
+  score:'Add a fourth rung or a fourth ladder when three feel smooth.',
+  items:[{ex:'cl',txt:'1-2-3 / side'},{ex:'pr',txt:'1-2-3 / side'}],
+  build:(wk,rs)=>{ for(let L=1;L<=3;L++){ for(let n=1;n<=3;n++){ wk('pr',n,L,'Clean & Press',n+(n===1?' rep':' reps')+' / side · ladder '+L,Math.round(n*2*5)); if(n<3) rs(30,'pr','Rung rest'); } if(L<3) rs(90,'cl','Ladder rest'); } }},
+ {name:'Daily Swings & Get-Ups',lv:3,focus:'Full body',credit:'Based on the daily practice popularized by Pavel Tsatsouline',
+  about:'10 sets of 10 one-arm swings, switching hands every set, then 10 Turkish get-ups alternating sides.',
+  score:'Keep every rep crisp. Use a heavier bell once all 100 swings and 10 get-ups feel easy.',
+  items:[{ex:'sw1',txt:'10 × 10, alternate hands'},{ex:'tgu',txt:'10 total, alternate sides'}],
+  build:(wk,rs)=>{ for(let r=1;r<=10;r++){ wk('sw1',10,r,'One-Arm Swing','10 reps · '+(r%2?'right':'left')+' hand',20); if(r<10) rs(20,'sw1'); } rs(60,'tgu','Rest before get-ups'); for(let r=1;r<=10;r++){ wk('tgu',1,r,'Turkish Get-Up','1 rep · '+(r%2?'right':'left')+' side',50); if(r<10) rs(15,'tgu'); } }}
+];
+CLASSIC_DEFS.forEach((d,i)=>{
+  const w={id:WORKOUTS.length+1,classic:true,bw:false,code:'CL-'+String(i+1).padStart(2,'0'),lv:d.lv,fmt:'classic',name:d.name,focus:d.focus,credit:d.credit,about:d.about,score:d.score,items:d.items,gear:[]};
+  w.equip=d.equip||'Single bell';
+  w.steps=classicSteps(d); w.secs=w.steps.reduce((a,s)=>a+s.secs,0)-10; w.dur=Math.max(5,Math.round(w.secs/60));
+  WORKOUTS.push(w);
+});
+const CLASSICS=WORKOUTS.filter(w=>w.classic);
+const classicByName=n=>CLASSICS.find(w=>w.name===n);
 
 /* ---------- figure rendering ---------- */
 const NS='http://www.w3.org/2000/svg';
@@ -618,24 +695,33 @@ const FRIENDS0=[
 ];
 function monday(d){ const x=new Date(d); const dow=(x.getDay()+6)%7; return addDays(x,-dow); }
 function seedState(){
-  const hist=[[1,37],[2,112],[4,58],[5,150],[7,23],[9,121],[12,15]].map(([ago,wi])=>{ const w=WORKOUTS[wi]; return {d:iso(addDays(TODAY,-ago)),id:w.id,min:w.dur,sample:true}; });
   const m1=new Date(TODAY.getFullYear(),TODAY.getMonth(),1); const mEnd=new Date(TODAY.getFullYear(),TODAY.getMonth()+1,0);
   const wk=monday(TODAY);
   return {
-    v:2, prefs:{level:1,goal:4}, saved:[37,112,58], enrolled:{p1:{start:iso(addDays(TODAY,-9)),done:[0,1,2,3]}}, history:hist,
-    friends:FRIENDS0.map(f=>({...f,status:'friend'})),
-    contests:[
-      {id:'c1',name:TODAY.toLocaleDateString('en-US',{month:'long'})+' Swing-Off',metric:'minutes',start:iso(m1),end:iso(mEnd),members:[{id:'me'},{id:'f1',st:'joined'},{id:'f2',st:'joined'},{id:'f3',st:'joined'},{id:'f4',st:'joined'}],stake:'Last place buys the post-workout smoothies',code:'SWNG7Q2K',sample:true},
-      {id:'c2',name:'Show-Up Week',metric:'goal',target:4,start:iso(wk),end:iso(addDays(wk,6)),members:[{id:'me'},{id:'f2',st:'joined'},{id:'f5',st:'joined'},{id:'f6',st:'joined'}],stake:'',code:'SHOW4W9P',sample:true}
-    ],
+    v:3, prefs:{level:1,goal:4}, saved:[], enrolled:{}, history:[],
+    friends:[],
+    contests:[],
     feed:[], nudged:[],
     meal:{sex:'F',age:34,lbs:160,ft:5,inch:7,act:1.55,goal:'lose',diet:'omni',allergens:[],mpd:3,deliver:{breakfast:true,lunch:true,dinner:true,snack:true},day:5,plan:null,portion:'auto',order:null}
   };
 }
 let S;
 try{ const raw=localStorage.getItem(KEY); S= raw? JSON.parse(raw) : null; }catch(e){ S=null; }
-if(!S || S.v!==2) S=seedState();
+if(S && S.v===2){
+  // Version 1.0.11: remove the sample friends, contests and history that earlier betas started with
+  S.history=(S.history||[]).filter(h=>!h.sample);
+  S.contests=(S.contests||[]).filter(c=>!c.sample);
+  S.friends=(S.friends||[]).filter(f=>!/^f[1-6]$/.test(f.id));
+  const ids=new Set(['me',...S.friends.map(f=>f.id)]);
+  S.contests.forEach(c=>{ c.members=c.members.filter(m=>ids.has(m.id)); });
+  S.nudged=[];
+  if(S.enrolled&&S.enrolled.p1&&S.enrolled.p1.done.join()==='0,1,2,3') delete S.enrolled.p1;
+  if(JSON.stringify(S.saved)==='[37,112,58]') S.saved=[];
+  S.v=3;
+}
+if(!S || S.v!==3) S=seedState();
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
+save();
 const UI={filters:{mode:'kb',lv:0,focus:'',fmt:'',dur:'',equip:'',q:'',saved:false,limit:24}, contestDraft:null, lastInvite:null};
 
 /* ---------- derived ---------- */
@@ -643,13 +729,13 @@ const W = id => WORKOUTS[id-1];
 function streak(){ const days=new Set(S.history.map(h=>h.d)); let d=new Date(TODAY); if(!days.has(iso(d))) d=addDays(d,-1); let n=0; while(days.has(iso(d))){ n++; d=addDays(d,-1);} return n; }
 function weekDays(){ const m=monday(TODAY); return [...Array(7)].map((_,i)=>addDays(m,i)); }
 function sessionsBetween(a,b){ return S.history.filter(h=>h.d>=a && h.d<=b); }
-function todaysPick(){ const lv=S.prefs.level; const pool=WORKOUTS.filter(w=>w.lv===lv&&!w.bw); return pool[hashStr(iso(TODAY)+lv)%pool.length]; }
+function todaysPick(){ const lv=S.prefs.level; const pool=WORKOUTS.filter(w=>w.lv===lv&&!w.bw&&!w.classic); return pool[hashStr(iso(TODAY)+lv)%pool.length]; }
 function bwPick(){ const lv=S.prefs.level; const pool=WORKOUTS.filter(w=>w.lv===lv&&w.bw&&!w.gear.length); return pool[hashStr('bw'+iso(TODAY)+lv)%pool.length]; }
 function contestDays(c){ const st=fromIso(c.start), en=fromIso(c.end); const len=Math.round((en-st)/864e5)+1; const el=Math.min(len,Math.max(0,Math.floor((TODAY-st)/864e5)+1)); return {len,el,left:Math.max(0,len-el)}; }
 function friend(id){ return S.friends.find(f=>f.id===id); }
 const MIN_METRICS=['minutes','team','goalmin'];
 function myScore(c){
-  const hs=sessionsBetween(c.start,c.end); const wk=h=>W(h.id);
+  const hs=sessionsBetween(c.start,c.end); const wk=h=>h.moves?{lv:h.lv,fmt:h.fmt,bw:h.bw,items:h.moves.map(ex=>({ex}))}:W(h.id);
   switch(c.metric){
     case 'minutes': case 'team': case 'goalmin': return hs.reduce((a,h)=>a+h.min,0);
     case 'workout': return hs.filter(h=>h.id===c.wid).length;
@@ -730,7 +816,7 @@ function vToday(){
   const weekCount=sessionsBetween(iso(wk[0]),iso(wk[6])).length;
   const m1=iso(new Date(TODAY.getFullYear(),TODAY.getMonth(),1));
   const minMonth=sessionsBetween(m1,iso(TODAY)).reduce((a,h)=>a+h.min,0);
-  const c=S.contests[0]; let contestHtml='<p class="muted">No active contests yet.</p>'; let rankTxt='–';
+  const c=S.contests[0]; let contestHtml='<span class="lbl">Challenges</span><h3 style="margin-top:6px">Pick a challenge</h3><p class="small muted" style="margin-top:4px">58 ready-made challenges, from a 5-workout starter to the 10,000 Swing Challenge.</p><button class="btn sm pri" data-act="nav" data-v="challenges" style="margin-top:10px">Browse challenges</button>'; let rankTxt='–';
   if(c){ const sd=standings(c); const myRank=sd.findIndex(x=>x.id==='me')+1; rankTxt=`${myRank}<small> of ${sd.length}</small>`;
     contestHtml=`<div class="row between"><h3>${esc(c.name)}</h3><span class="chip">${contestDays(c).left} days left</span></div><p class="small muted" style="margin:4px 0 10px">Ranked by ${esc(metricName(c))}</p>${leaderboard(c,4)}<button class="btn sm" data-act="nav" data-v="challenges" style="margin-top:10px">Open challenges</button>`; }
   const o=S.meal.order;
@@ -771,11 +857,16 @@ function vToday(){
       <div style="display:grid;grid-template-columns:minmax(120px,200px) 1fr;gap:14px;margin-top:10px;align-items:center">${pic(b.items[0].ex)}
       <div><h3>${esc(b.name)}</h3><p class="small muted" style="margin-top:2px">${FMT[b.fmt].name} · ${b.dur} min · no equipment</p><p class="small" style="margin-top:4px">${b.items.map(i=>esc(EXM[i.ex].name)).join(' · ')}</p>
       <div class="row" style="margin-top:8px"><button class="btn sm pri" data-act="start" data-id="${b.id}">Start</button><button class="btn sm" data-act="fmode" data-m="bw" onclick="location.hash='workouts'">All bodyweight</button></div></div></div>`; })()}</div>
+    <div class="panel">${(()=>{ const wkN=Math.floor((TODAY-new Date(2026,0,5))/6048e5); const c=CLASSICS[((wkN%CLASSICS.length)+CLASSICS.length)%CLASSICS.length];
+      return `<div class="row between"><span class="lbl">Classic of the week</span><span class="code">${c.code}</span></div>
+      <div style="display:grid;grid-template-columns:minmax(120px,200px) 1fr;gap:14px;margin-top:10px;align-items:center">${pic(c.items[0].ex)}
+      <div><h3>${esc(c.name)}</h3><p class="small muted" style="margin-top:2px">${esc(c.credit)} · ${c.dur} min</p><p class="small" style="margin-top:4px">${c.items.map(i=>esc(EXM[i.ex].name)).join(' · ')}</p>
+      <div class="row" style="margin-top:8px"><button class="btn sm pri" data-act="start" data-id="${c.id}">Start</button><button class="btn sm" data-act="open" data-id="${c.id}">How it works</button></div></div></div>`; })()}</div>
     <div class="panel">${contestHtml}</div>
     <div class="panel">${mealHtml}</div>
   </div>
   <div style="margin-top:16px">${gearPanel()}</div>
-  <div class="note" style="margin-top:16px"><b>Beta</b><span>Your sessions are saved in this browser. Friends, contest invites and meal deliveries are simulated sample data so you can try the full flow.</span></div>`;
+  <div class="note" style="margin-top:16px"><b>Beta</b><span>Your workouts and progress are saved on this phone. Friend invites, shared leaderboards and meal delivery are coming soon.</span></div>`;
 }
 
 /* ---------- Workouts ---------- */
@@ -783,8 +874,8 @@ function vWorkouts(){
   const F=UI.filters;
   const opt=(arr,cur)=>arr.map(([v,l])=>`<option value="${v}" ${cur===v?'selected':''}>${l}</option>`).join('');
   return `
-  <div class="head"><div><h1>Workouts</h1><p class="sub">${F.mode==='bw'?'Bonus: 100 no-equipment sessions built from 24 bodyweight moves, for days without your bell.':'200 kettlebell sessions built from 24 core moves, beginner to advanced, each with a muscle map and form guide.'}</p></div>
-    <div class="seg" role="group" aria-label="Workout type"><button data-act="fmode" data-m="kb" aria-pressed="${F.mode==='kb'}">Kettlebell (200)</button><button data-act="fmode" data-m="bw" aria-pressed="${F.mode==='bw'}">Bodyweight bonus (100)</button></div></div>
+  <div class="head"><div><h1>Workouts</h1><p class="sub">${F.mode==='bw'?'Bonus: 100 no-equipment sessions built from 24 bodyweight moves, for days without your bell.':F.mode==='classic'?'Time-tested kettlebell workouts from well-known coaches, built the way they are usually done.':'200 kettlebell sessions built from 26 core moves, beginner to advanced, each with a muscle map and form guide.'}</p></div>
+    <div class="seg" role="group" aria-label="Workout type"><button data-act="fmode" data-m="kb" aria-pressed="${F.mode==='kb'}">Kettlebell (200)</button><button data-act="fmode" data-m="classic" aria-pressed="${F.mode==='classic'}">Classics (${CLASSICS.length})</button><button data-act="fmode" data-m="bw" aria-pressed="${F.mode==='bw'}">Bodyweight bonus (100)</button></div></div>
   <div class="filters">
     <div class="seg" role="group" aria-label="Level">
       <button data-act="flv" data-l="0" aria-pressed="${F.lv===0}">All</button>
@@ -794,9 +885,9 @@ function vWorkouts(){
   </div>
   <div class="filters">
     <select id="ff" data-ch="focus" aria-label="Focus"><option value="">Any focus</option>${opt(['Full body','Lower body','Upper body','Core','Conditioning'].map(x=>[x,x]),F.focus)}</select>
-    <select id="ft" data-ch="fmt" aria-label="Format"><option value="">Any format</option>${opt(Object.entries(FMT).filter(([k])=>!(F.mode==='bw'&&k==='complex')).map(([k,v])=>[k,v.name]),F.fmt)}</select>
+    ${F.mode==='classic'?'':`<select id="ft" data-ch="fmt" aria-label="Format"><option value="">Any format</option>${opt(Object.entries(FMT).filter(([k])=>k!=='classic'&&!(F.mode==='bw'&&k==='complex')).map(([k,v])=>[k,v.name]),F.fmt)}</select>`}
     <select id="fd" data-ch="dur" aria-label="Duration"><option value="">Any length</option>${opt([['s','15 min or less'],['m','16–25 min'],['l','26–40 min'],['x','Over 40 min']],F.dur)}</select>
-    ${F.mode==='bw'?'':`<select id="fe" data-ch="equip" aria-label="Equipment"><option value="">Any equipment</option>${opt([['Single bell','Single bell'],['Double bells','Double bells']],F.equip)}</select>`}
+    ${F.mode!=='kb'?'':`<select id="fe" data-ch="equip" aria-label="Equipment"><option value="">Any equipment</option>${opt([['Single bell','Single bell'],['Double bells','Double bells']],F.equip)}</select>`}
     <button class="btn sm" data-act="fsaved" aria-pressed="${F.saved}">Saved offline (${S.saved.length})</button>
   </div>
   ${F.mode==='bw'?gearPanel():''}
@@ -807,14 +898,14 @@ function vWorkouts(){
 function filtered(){
   const F=UI.filters, q=F.q.trim().toLowerCase();
   return WORKOUTS.filter(w=>{
-    if(!!w.bw!==(F.mode==='bw')) return false;
+    if(F.mode==='classic'){ if(!w.classic) return false; } else { if(w.classic) return false; if(!!w.bw!==(F.mode==='bw')) return false; }
     if(F.lv && w.lv!==F.lv) return false;
     if(F.focus && w.focus!==F.focus) return false;
     if(F.fmt && w.fmt!==F.fmt) return false;
     if(F.equip && w.equip!==F.equip) return false;
     if(F.saved && !S.saved.includes(w.id)) return false;
     if(F.dur){ const d=w.dur; if(F.dur==='s'&&d>15) return false; if(F.dur==='m'&&(d<16||d>25)) return false; if(F.dur==='l'&&(d<26||d>40)) return false; if(F.dur==='x'&&d<=40) return false; }
-    if(q){ const hay=(w.name+' '+w.code+' '+w.items.map(i=>EXM[i.ex].name).join(' ')+' '+FMT[w.fmt].name).toLowerCase(); if(!q.split(/\s+/).every(t=>hay.includes(t))) return false; }
+    if(q){ const hay=(w.name+' '+w.code+' '+(w.credit||'')+' '+w.items.map(i=>EXM[i.ex].name).join(' ')+' '+FMT[w.fmt].name).toLowerCase(); if(!q.split(/\s+/).every(t=>hay.includes(t))) return false; }
     return true;
   });
 }
@@ -823,7 +914,7 @@ function card(w){
   return `<article class="wcard ${LV[w.lv].cls}">
     <div class="thumb">${pic(w.items[0].ex)}</div>
     <div><div class="code">${w.code}</div><h3>${esc(w.name)}</h3>
-      <div class="meta">${LV[w.lv].name} · ${FMT[w.fmt].name} · ${w.dur} min · ${w.focus}${w.bw&&w.gear.length?' · uses '+esc(w.gear.join(', ').toLowerCase()):''}</div>${w.items.some(i=>EXM[i.ex].needsBuy)&&!S.prefs.bar?'<div style="margin-top:4px"><span class="chip pill-warn">No bar: pull-ups swapped for table rows</span></div>':''}
+      <div class="meta">${w.classic?esc(w.credit)+' · ':''}${LV[w.lv].name} · ${w.classic?'':FMT[w.fmt].name+' · '}${w.dur} min · ${w.focus}${w.bw&&w.gear.length?' · uses '+esc(w.gear.join(', ').toLowerCase()):''}</div>${w.items.some(i=>EXM[i.ex].needsBuy)&&!S.prefs.bar?'<div style="margin-top:4px"><span class="chip pill-warn">No bar: pull-ups swapped for table rows</span></div>':''}
       <div class="moves">${w.items.map(i=>esc(EXM[i.ex].name)).join(' · ')}</div></div>
     <div class="acts"><button class="btn sm" data-act="open" data-id="${w.id}">Form guide</button><button class="btn sm" data-act="save" data-id="${w.id}" aria-pressed="${sv}">${sv?'Saved':'Save offline'}</button><button class="btn sm pri" data-act="start" data-id="${w.id}">Start</button></div>
   </article>`;
@@ -837,7 +928,7 @@ function renderList(){
 }
 function vDetail(w){
   const sv=S.saved.includes(w.id);
-  const structure = w.fmt==='circuit'?`${w.rounds} rounds · ${w.restEx}s between moves · ${w.restRound}s between rounds`
+  const structure = w.classic? w.score : w.fmt==='circuit'?`${w.rounds} rounds · ${w.restEx}s between moves · ${w.restRound}s between rounds`
     : w.fmt==='emom'?`${w.minutes} minutes, rotating through ${w.items.length} moves`
     : w.fmt==='amrap'?`${w.minutes} minutes, as many rounds as possible`
     : w.fmt==='ladder'?`Rungs of ${w.rungs.join(', ')} · ${w.restRound}s between rungs`
@@ -848,10 +939,10 @@ function vDetail(w){
   <div class="panel">
     <div class="dhead">
       <div><div class="code">${w.code}</div><h1 style="margin-top:4px">${esc(w.name)}</h1>
-        <p class="muted" style="margin-top:6px;max-width:62ch">${FMT[w.fmt].desc}</p>
+        ${w.classic?`<p style="margin-top:6px;font-weight:600">${esc(w.credit)}</p><p class="muted" style="margin-top:4px;max-width:62ch">${esc(w.about)}</p>`:`<p class="muted" style="margin-top:6px;max-width:62ch">${FMT[w.fmt].desc}</p>`}
         <div class="facts">
           <div><span>Level</span><b><span class="chip lvchip ${LV[w.lv].cls}" style="font-size:13px">${LV[w.lv].name}</span></b></div>
-          <div><span>Format</span><b>${FMT[w.fmt].name}</b></div>
+          <div><span>Format</span><b>${w.classic?'Kettlebell classic':FMT[w.fmt].name}</b></div>
           <div><span>Time</span><b class="num">${w.dur} min</b></div>
           <div><span>Focus</span><b>${w.focus}</b></div>
           ${w.bw?`<div><span>Uses</span><b>${w.gear.length?esc(w.gear.map(g=>g==='Pull-up bar'&&!S.prefs.bar?'Sturdy table (bar optional)':g).join(', ')):'Nothing'}</b></div>`:`<div><span>Suggested bell</span><b>${LV[w.lv].bell}${w.equip==='Double bells'?' × 2':''}</b></div>`}
@@ -879,6 +970,7 @@ function vDetail(w){
           <div><div class="lbl bad">Common mistakes</div><ul>${ex.miss.map(c=>`<li>${esc(c)}</li>`).join('')}</ul></div>
         </div></div></div>`; }).join('')}
   </div>
+  ${w.classic?'<p class="small muted" style="margin-top:14px">Coach names show who popularized each workout. BellForge is not affiliated with or endorsed by them.</p>':''}
   <p class="small muted" style="margin-top:14px">Warm up for 5 minutes before you start. Stop if you feel sharp pain, and check with a doctor before starting a new training program.</p>`;
 }
 
@@ -902,10 +994,15 @@ function tick(){
 function finish(){
   stopTimer(); T.done=true; beep(990,.35);
   const min=Math.max(1,Math.round(T.elapsed/60));
-  S.history.push({d:iso(TODAY),id:T.wid||0,min,name:T.title});
+  const hw=T.wobj||(T.wid?W(T.wid):null);
+  S.history.push({d:iso(TODAY),id:T.wid||0,min,name:T.title,lv:hw?hw.lv:0,fmt:hw?hw.fmt:'custom',bw:!!(hw&&hw.bw),moves:hw?hw.items.map(i=>i.ex):[T.steps[0]&&T.steps[0].ex].filter(Boolean)});
   if(T.prog && S.enrolled[T.prog.pid] && !S.enrolled[T.prog.pid].done.includes(T.prog.k)) S.enrolled[T.prog.pid].done.push(T.prog.k);
   S.feed.unshift({t:Date.now(),txt:`You finished ${T.title} (${min} min)`});
+  const done=S.history.filter(h=>!h.sample).length;
+  const askReview = done>=3 && !S.reviewAsked;
+  if(askReview) S.reviewAsked=true;
   save(); route(); toast('Session logged. Your streak and contests are updated.');
+  if(askReview) setTimeout(()=>{ try{ const P=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.InAppReview; if(P&&P.requestReview) P.requestReview().catch(()=>{}); }catch(e){} },1800);
 }
 function vTimer(){
   if(!T.steps.length){
@@ -1035,13 +1132,16 @@ const TEMPLATES = [
  ['Seasonal','Spring Reset','12 sessions in three weeks.','goal',21,{target:12}],
  ['Seasonal','Summer Shred','Most minutes over six weeks.','minutes',42,{}],
  ['Seasonal','Fall Back Into It','Most sessions over four weeks.','sessions',28,{}],
+ ['Classics','10,000 Swing Challenge','Complete the 500 Swing Day 20 times in 30 days: 10,000 swings.','workout',30,{wid:'c:500 Swing Day',target:20}],
+ ['Classics','Humane Burpee Week','Do the Humane Burpee 3 times this week.','workout',7,{wid:'c:Humane Burpee',target:3}],
+ ['Classics','Armor Month','Do the Armor Building Complex 12 times in 30 days.','workout',30,{wid:'c:Armor Building Complex',target:12}],
  ['Bodyweight','No-Bell Week','Four bodyweight sessions in seven days.','bw',7,{target:4}],
  ['Bodyweight','Push-Up Club','Most push-up sessions in 14 days.','move',14,{moves:['pu','ap','ppu','pk']}],
  ['Bodyweight','Plank Ladder','Most plank and core-hold sessions in 14 days.','move',14,{moves:['pl','sp','hh','ls']}],
  ['Bodyweight','Burpee Battle','Most burpee sessions in 14 days.','move',14,{moves:['bp']}],
  ['Bodyweight','Pull-Up Project','Most pull-up and row sessions in 30 days.','move',30,{moves:['pup','ir']}]
-].map(([cat,name,desc,metric,days,x],i)=>({i,cat,name,desc,metric,days,...x}));
-const TCATS=['All','Starter','Consistency','Volume','Team','Skill','Level & format','Seasonal','Bodyweight'];
+].map(([cat,name,desc,metric,days,x],i)=>({i,cat,name,desc,metric,days,...x})).map(t=>(typeof t.wid==='string'&&t.wid.startsWith('c:'))?{...t,wid:classicByName(t.wid.slice(2)).id}:t);
+const TCATS=['All','Classics','Starter','Consistency','Volume','Team','Skill','Level & format','Seasonal','Bodyweight'];
 function leaderboard(c,max){
   const sd=standings(c); const team=c.metric==='team'||c.metric==='teams';
   const top=c.target&&!team?c.target:Math.max(1,...sd.map(x=>x.score)); const u=unit(c);
@@ -1057,8 +1157,7 @@ function vChallenges(){
   const st=streak(); const wk=weekDays(); const weekCount=sessionsBetween(iso(wk[0]),iso(wk[6])).length;
   const D=UI.contestDraft||{name:'',metric:'sessions',days:7,stake:''};
   const cat=UI.tcat||'All'; const tpls=TEMPLATES.filter(t=>cat==='All'||t.cat===cat);
-  const feed=[...S.feed.slice(0,4).map(f=>({txt:f.txt,when:'Just now'})),
-    {txt:'Maya R. finished Ember Ladder (24 min)',when:'2h ago'},{txt:'Jordan K. hit a 21-day streak',when:'5h ago'},{txt:'Priya N. joined Show-Up Week',when:'Yesterday'},{txt:'Dev P. finished Granite Primer (18 min)',when:'Yesterday'}].slice(0,7);
+  const feed=S.feed.slice(0,7).map(f=>({txt:f.txt,when:new Date(f.t).toLocaleDateString('en-US',{month:'short',day:'numeric'})}));
   return `
   <div class="head"><div><h1>Challenges</h1><p class="sub">Compete with friends and keep each other accountable. Start from one of ${TEMPLATES.length} ready-made challenges or build your own.</p></div></div>
   <div class="grid g4" style="margin-bottom:16px">
@@ -1068,11 +1167,11 @@ function vChallenges(){
     <div class="panel tile"><div class="k">Friends</div><div class="v num">${S.friends.length}</div></div>
   </div>
   <div class="grid g2" style="margin-bottom:16px">
+    ${S.contests.length?'':'<div class="panel"><h2>No active challenges</h2><p class="small muted" style="margin-top:6px">Pick one from the library below. Goal challenges like Show-Up Week work solo, so you can start today.</p></div>'}
     ${S.contests.map(c=>{ const cd=contestDays(c); return `<div class="panel">
       <div class="row between"><h2>${esc(c.name)}</h2><span class="chip">${cd.left} of ${cd.len} days left</span></div>
       <p class="small muted" style="margin:4px 0 12px">Ranked by ${esc(metricName(c))}${c.stake?' · Stakes: '+esc(c.stake):''}</p>
       ${leaderboard(c)}
-      <div class="row" style="margin-top:12px"><button class="btn sm" data-act="copy" data-text="https://bellforge.example/join/${c.code}">Copy invite link</button><span class="code">Code ${c.code}</span></div>
     </div>`; }).join('')}
   </div>
   <div class="panel" style="margin-bottom:16px">
@@ -1107,8 +1206,8 @@ function vChallenges(){
         <div><div style="font-weight:600">${esc(f.name)} ${f.status==='pending'?'<span class="chip pill-warn">Invite pending</span>':''}</div><div class="small muted">${f.status==='pending'?'Waiting to accept':`${f.streak}-day streak · active ${esc(f.last)}`}</div></div>
         ${f.status==='pending'?'':`<button class="btn sm" data-act="nudge" data-id="${f.id}" ${S.nudged.includes(f.id)?'aria-pressed="true"':''}>${S.nudged.includes(f.id)?'Nudged':'Nudge'}</button>`}</div>`).join('')}</div>
       <form class="row" data-form="friend" style="margin-top:12px"><input type="text" id="fa" placeholder="Friend's username or email" aria-label="Friend's username or email" style="flex:1" required maxlength="60"><button class="btn" type="submit">Add friend</button></form>
-      <h2 style="margin-top:20px">Activity</h2><div class="feed" style="margin-top:8px">${feed.map(f=>`<div><span>${esc(f.txt)}</span><span class="muted small" style="white-space:nowrap">${f.when}</span></div>`).join('')}</div>
-      <p class="small muted" style="margin-top:10px">Friends and their activity are sample data in this prototype.</p>
+      <h2 style="margin-top:20px">Activity</h2><div class="feed" style="margin-top:8px">${feed.length?feed.map(f=>`<div><span>${esc(f.txt)}</span><span class="muted small" style="white-space:nowrap">${f.when}</span></div>`).join(''):'<p class="small muted" style="padding:8px 0">Your finished workouts and challenges will show here.</p>'}</div>
+      <p class="small muted" style="margin-top:10px">Friend invites go live when accounts launch. Until then, challenges track your own progress.</p>
     </div>
   </div>`;
 }
@@ -1126,7 +1225,7 @@ const PROGRAMS=[
  {id:'p9',bw:true,name:'First Pull-Up',lv:[2,3],weeks:6,per:3,hero:'pup',desc:'Bonus: inverted rows, hollow holds and pull-ups to earn your first strict rep.',moves:['ir','hh','pup']}
 ];
 PROGRAMS.forEach(p=>{
-  const pool=WORKOUTS.filter(w=>!!w.bw===!!p.bw && (!p.bw||p.moves||!w.gear.length) && p.lv.includes(w.lv) && (!p.fmts||p.fmts.includes(w.fmt)) && (!p.moves||w.items.some(i=>p.moves.includes(i.ex)))).sort((a,b)=>a.lv-b.lv||a.dur-b.dur);
+  const pool=WORKOUTS.filter(w=>!w.classic && !!w.bw===!!p.bw && (!p.bw||p.moves||!w.gear.length) && p.lv.includes(w.lv) && (!p.fmts||p.fmts.includes(w.fmt)) && (!p.moves||w.items.some(i=>p.moves.includes(i.ex)))).sort((a,b)=>a.lv-b.lv||a.dur-b.dur);
   const n=p.weeks*p.per; p.n=n; p.sched=[...Array(n)].map((_,k)=>pool[Math.min(pool.length-1,Math.floor(k*pool.length/n))].id);
 });
 const PM=Object.fromEntries(PROGRAMS.map(p=>[p.id,p]));
@@ -1326,7 +1425,7 @@ const ACT={
   mswap:b=>{ const d=+b.dataset.d, si=+b.dataset.s; const slot=SLOTS[S.meal.mpd][si]; const el=eligible(slot); const cur=el.findIndex(x=>x.id===S.meal.plan[d][si]); S.meal.plan[d][si]=el[(cur+1)%el.length].id; save(); route(); },
   mregen:()=>{ const slots=SLOTS[S.meal.mpd]; S.meal.plan=DAYS.map(()=>slots.map(s=>{ const el=eligible(s); return el.length?el[Math.floor(Math.random()*el.length)].id:null; })); save(); route(); },
   morder:()=>{ const o=orderLines(); S.meal.order={next:iso(nextDelivery(S.meal.day)),count:o.count,total:o.total}; save(); route(); toast('Demo order saved'); },
-  reset:()=>{ try{ localStorage.removeItem(KEY); }catch(e){} S=seedState(); stopTimer(); T.steps=[]; UI.lastInvite=null; UI.contestDraft=null; route(); toast('Demo data reset'); }
+  reset:()=>{ try{ localStorage.removeItem(KEY); }catch(e){} S=seedState(); stopTimer(); T.steps=[]; UI.lastInvite=null; UI.contestDraft=null; route(); toast('App data reset'); }
 };
 document.addEventListener('click',e=>{ const a=e.target.closest('a[href^="http"]'); const Cap=window.Capacitor;
   if(a && Cap && Cap.isNativePlatform && Cap.isNativePlatform()){ e.preventDefault(); const Br=Cap.Plugins&&Cap.Plugins.Browser; if(Br) Br.open({url:a.href}); else window.open(a.href,'_system'); return; } },true);
@@ -1356,7 +1455,7 @@ document.addEventListener('submit',e=>{
     else { const days=+$('#cd').value, metric=$('#cm').value, tg=+$('#ct').value;
       c={id:'c'+Date.now(),name,metric,start:iso(TODAY),end:iso(addDays(TODAY,days-1)),members,stake:$('#cs').value.trim(),code};
       if(tg>0) c.target=tg; if(metric==='workout' && D.wid) c.wid=D.wid; }
-    S.contests.unshift(c); S.feed.unshift({t:Date.now(),txt:`You started ${name}`}); UI.contestDraft=null; UI.lastInvite=`https://bellforge.example/join/${code}`; save(); route(); toast('Contest created. Share the invite link with your friends.'); }
+    S.contests.unshift(c); S.feed.unshift({t:Date.now(),txt:`You started ${name}`}); UI.contestDraft=null; UI.lastInvite=null; save(); route(); toast('Challenge started. Friend invites arrive with accounts.'); }
   if(f==='friend'){ const v=$('#fa').value.trim(); if(!v) return; S.friends.push({id:'u'+Date.now(),name:v.includes('@')?v.split('@')[0]:v,streak:0,mpd:8,spw:3,last:'–',status:'pending'}); save(); route(); toast(`Friend request ready for ${v}`); }
 });
 

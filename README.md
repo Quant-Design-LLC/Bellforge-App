@@ -105,7 +105,7 @@ The Info.plist already declares that the app uses no non-exempt encryption, so y
 ## Shipping an update
 
 1. Edit files in `www/`.
-2. Raise the version numbers (Xcode Build number; Android `versionCode`).
+2. Raise the version numbers: in `android/app/build.gradle`, add 1 to `bfLocalVersion` (Play rejects a number it has already seen). iOS build numbers are set by the workflow.
 3. `npx cap sync`, then archive and upload as above.
 
 ## Before a public release

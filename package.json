@@ -1,6 +1,6 @@
 {
   "name": "bellforge",
-  "version": "0.1.0",
+  "version": "1.0.11",
   "private": true,
   "description": "BellForge: kettlebell workouts, muscle maps, challenges and meal plans",
   "scripts": {
@@ -11,6 +11,7 @@
     "serve": "npx http-server www -p 8080"
   },
   "dependencies": {
+    "@capacitor-community/in-app-review": "^8.0.0",
     "@capacitor/android": "^8.6.0",
     "@capacitor/browser": "^8.0.5",
     "@capacitor/cli": "^8.6.0",

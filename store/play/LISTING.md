@@ -30,10 +30,13 @@ KETTLEBELL WORKOUTS FOR HOME, WITH A MUSCLE MAP FOR EVERY EXERCISE
 BellForge is a kettlebell workout app for strength training at home or in the gym. Follow a kettlebell workout plan, time every session with a built-in HIIT timer, see exactly which muscles each move works, and stay accountable with fitness challenges you do with friends.
 
 MUSCLE MAP FOR EVERY EXERCISE
-Every kettlebell exercise comes with a muscle map that highlights the primary and supporting muscles worked, plus form cues and the most common mistakes to avoid. Learn the kettlebell swing, goblet squat, deadlift, clean, press, snatch, Turkish get-up, windmill and more: 48 moves with clear muscle maps.
+Every kettlebell exercise comes with a muscle map that highlights the primary and supporting muscles worked, plus form cues and the most common mistakes to avoid. Learn the kettlebell swing, goblet squat, deadlift, clean, press, snatch, Turkish get-up, windmill and more: 50 moves with clear muscle maps.
 
 200 KETTLEBELL WORKOUTS, BEGINNER TO ADVANCED
 Beginner kettlebell workouts, intermediate sessions and advanced kettlebell training, all in one library. Choose full body workouts, lower body, upper body, core or conditioning, in six formats: circuits, EMOM, AMRAP, ladders, Tabata and kettlebell complexes. Filter by level, focus, length and equipment, and save workouts for offline training.
+
+KETTLEBELL CLASSICS
+Time-tested kettlebell workouts done the way they're usually done: the Humane Burpee, the Armor Building Complex, the Coyote, clean & press ladders, daily swings and get-ups, and the 500 Swing Day. Take on the 10,000 Swing Challenge with friends.
 
 HIIT, EMOM & AMRAP WORKOUT TIMER
 Start any kettlebell workout and the guided workout timer walks you through it: work and rest intervals, audio countdowns, round tracking for AMRAPs, and the muscle map for the exercise you're on. Build your own interval timer for swings or any move.
@@ -48,7 +51,7 @@ Follow a multi-week kettlebell program that gets harder week by week:
 - Advanced Iron (8 weeks)
 
 FITNESS CHALLENGES WITH FRIENDS
-Accountability makes training stick. Pick from 55 ready-made fitness challenges, or build your own: most sessions, most minutes, longest streak, team totals, weekend warrior, or skill challenges like the Get-Up Ladder and Swing Specialist. Invite friends, track the leaderboard and keep each other consistent with streaks and weekly goals.
+Accountability makes training stick. Pick from 58 ready-made fitness challenges, or build your own: most sessions, most minutes, longest streak, team totals, weekend warrior, or skill challenges like the Get-Up Ladder and Swing Specialist. Invite friends, track the leaderboard and keep each other consistent with streaks and weekly goals.
 
 BODYWEIGHT & CALISTHENICS BONUS
 No kettlebell today? 100 bodyweight workouts and calisthenics programs keep your streak alive: push-ups, squats, planks, burpees, pistol squats, pull-ups and more, plus Travel Training and First Pull-Up programs. Every move works with a chair, couch, table or wall at home.
@@ -64,12 +67,13 @@ WHY BELLFORGE
 - A muscle map for every exercise
 - Kettlebell workout plans that progress
 - HIIT, EMOM, AMRAP and Tabata workout timer
+- Kettlebell classics like the Humane Burpee and Armor Building Complex
 - Fitness challenges and streaks with friends
 - Bodyweight and calisthenics workouts when you don't have a bell
 - Works offline, with no ads
 
 PUBLIC BETA
-BellForge is in public beta. Your workouts and progress are saved on your device. Friends, leaderboards and meal delivery use sample data while we build accounts and syncing. Tell us what you'd like next; your feedback shapes the app.
+BellForge is in public beta. Your workouts and progress are saved on your device. Friend invites, shared leaderboards and meal delivery are coming soon as we build accounts and syncing. Tell us what you'd like next; your feedback shapes the app.
 
 Always warm up, use a kettlebell weight you can control with good form, and check with your doctor before starting a new training program.
 ```
@@ -162,6 +166,23 @@ Both stores require a public URL. The policy is at `docs/privacy-policy.html` in
 - The app does not diagnose, treat or provide medical advice.
 
 **Government apps, financial features, news:** No.
+
+---
+
+---
+
+## Version 1.0.11 release notes (Play Console > Open testing > Create new release)
+
+```
+<en-US>
+New in this update
+- Kettlebell Classics: the Humane Burpee, Armor Building Complex, the Coyote, clean & press ladders, the 500 Swing Day and more
+- 10,000 Swing Challenge and other classic challenges
+- Every workout now has its own mix of moves and its own name
+- A clean start: sample friends and challenges are gone, so your app shows only your own training
+- Double clean and double press added, with muscle maps
+</en-US>
+```
 
 ---
 
