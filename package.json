@@ -1,6 +1,6 @@
 {
   "name": "bellforge",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "private": true,
   "description": "BellForge: kettlebell workouts, muscle maps, challenges and meal plans",
   "scripts": {
@@ -17,8 +17,10 @@
     "@capacitor/cli": "^8.6.0",
     "@capacitor/core": "^8.6.0",
     "@capacitor/ios": "^8.6.0",
+    "@capacitor/share": "^8.0.3",
     "@capacitor/splash-screen": "^8.0.2",
-    "@capacitor/status-bar": "^8.0.4"
+    "@capacitor/status-bar": "^8.0.4",
+    "@capawesome/capacitor-app-update": "^8.1.1"
   },
   "devDependencies": {
     "@capacitor/assets": "^4.0.0"

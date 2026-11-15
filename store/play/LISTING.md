@@ -171,6 +171,20 @@ Both stores require a public URL. The policy is at `docs/privacy-policy.html` in
 
 ---
 
+## Version 1.0.12 release notes (Play Console > Open testing > Create new release)
+
+```
+<en-US>
+New in this update
+- Quick setup: tell us your name, level, weekly goal and whether you have a kettlebell
+- New Friends tab: invite friends with one tap and start challenges together
+- New Progress tab: weekly chart, training calendar, muscles trained and personal bests
+- Share your workout when you finish
+- Resume bar so you never lose a running session
+- The app now tells you when a new version is ready to install
+</en-US>
+```
+
 ## Version 1.0.11 release notes (Play Console > Open testing > Create new release)
 
 ```

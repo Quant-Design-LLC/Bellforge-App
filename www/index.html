@@ -116,6 +116,54 @@ a.btn{text-decoration:none;color:var(--ink)}
 .tcard h3{font-size:18px}
 .tcard .btn{margin-top:auto;align-self:flex-start}
 .teamtot{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+/* setup */
+.setup{max-width:560px;margin:4vh auto 0}
+.setup h1{font-size:40px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.opt{display:flex;flex-direction:column;gap:2px;text-align:left;padding:14px;border:2px solid var(--line);border-radius:var(--r);background:var(--surface);font-weight:600}
+.opt span{font-weight:400;font-size:13px;color:var(--muted)}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+body.setup-mode .tabbar,body.setup-mode .rail{display:none}
+body.setup-mode .app{grid-template-columns:1fr}
+/* update banner */
+.upd{position:fixed;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:60;display:flex;gap:12px;align-items:center;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-left:4px solid var(--accent);padding:10px 12px 10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:calc(100vw - 24px);font-size:14px}
+/* resume bar */
+.resume{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));z-index:45;display:flex;gap:12px;align-items:center;background:var(--ink);color:var(--bg);padding:10px 12px 10px 16px;border-radius:99px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100vw - 32px)}
+.resume b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+.resume .btn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+@media (min-width:901px){.resume{bottom:20px}}
+/* hero invite */
+.hero{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;background:var(--accent);color:var(--accent-ink);border-radius:var(--r);padding:20px}
+.hero h2{color:inherit}.hero p{opacity:.92}
+.hero .btn{background:var(--surface);color:var(--ink);border-color:var(--surface);font-size:15px;padding:12px 18px}
+@media (max-width:560px){.hero{grid-template-columns:1fr}}
+/* progress charts */
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .gl{stroke:var(--line);stroke-width:1}
+.chart .ax{fill:var(--muted);font-size:10.5px;font-family:var(--body)}
+.chart .bar{fill:var(--accent)}
+.chart .hit{fill:transparent;cursor:pointer}
+.chart .hit:hover+.bar,.chart .hit:focus+.bar{opacity:.8}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:6px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .1s;z-index:5}
+.tip.on{opacity:1}
+.heat{display:grid;grid-template-columns:28px repeat(var(--cols),1fr);gap:3px;align-items:center}
+.heat i{display:block;aspect-ratio:1;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);cursor:pointer}
+.heat i.l1{background:color-mix(in oklab,var(--accent) 30%,var(--surface));border-color:transparent}
+.heat i.l2{background:color-mix(in oklab,var(--accent) 55%,var(--surface));border-color:transparent}
+.heat i.l3{background:color-mix(in oklab,var(--accent) 80%,var(--surface));border-color:transparent}
+.heat i.l4{background:var(--accent);border-color:transparent}
+.heat i.fut{visibility:hidden}
+.heat span{font-size:10.5px;color:var(--muted)}
+.hlegend{display:flex;gap:4px;align-items:center;font-size:11.5px;color:var(--muted);justify-content:flex-end;margin-top:8px}
+.hlegend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.mbar{display:grid;grid-template-columns:110px 1fr 34px;gap:10px;align-items:center;font-size:13.5px;padding:3px 0}
+.mbar .t{height:12px;border-radius:0 4px 4px 0;background:var(--accent)}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;padding:6px 8px 6px 0;border-bottom:1px solid var(--line)}
+.tbl td{padding:8px 8px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.empty{padding:18px;text-align:center;color:var(--muted);font-size:14px;border:1px dashed var(--line);border-radius:var(--r)}
 /* filters */
 .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
@@ -787,9 +835,11 @@ const ICON={
   timer:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>',
   challenges:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/></svg>',
   programs:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>',
+  friends:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.6"/><path d="M16 14.2a5 5 0 0 1 5.5 5"/></svg>',
+  progress:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-9"/><path d="M15 7h5v5"/></svg>',
   meals:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 11h18a9 9 0 0 1-18 0zM12 3v4M8 5v2M16 5v2"/></svg>'
 };
-const VIEWS=[['today','Today'],['workouts','Workouts'],['programs','Programs'],['timer','Timer'],['challenges','Challenges'],['meals','Meals']];
+const VIEWS=[['today','Today'],['workouts','Workouts'],['programs','Programs'],['friends','Friends'],['progress','Progress'],['meals','Meals']];
 function renderNav(cur){
   const html=VIEWS.map(([k,l])=>`<button class="navbtn" data-act="nav" data-v="${k}" ${cur===k?'aria-current="page"':''}>${ICON[k]}<span>${l}</span></button>`).join('');
   $('#railnav').innerHTML=html; $('#tabbar').innerHTML=html;
@@ -799,41 +849,70 @@ function route(){
   let view='today', detail=null, prog=null;
   if(/^w-\d{1,4}$/.test(h)){ view='workouts'; detail=+h.slice(2); if(!W(detail)) detail=null; }
   else if(/^p-p\d+$/.test(h) && PM[h.slice(2)]){ view='programs'; prog=PM[h.slice(2)]; }
-  else if(VIEWS.some(v=>v[0]===h)) view=h;
+  else if(h==='challenges') view='friends';
+  else if(h==='timer' || VIEWS.some(v=>v[0]===h)) view=h;
+  if(!S.profile){ document.body.classList.add('setup-mode'); $('#main').innerHTML=vSetup(); window.scrollTo(0,0); return; }
+  document.body.classList.remove('setup-mode');
   renderNav(view);
   const main=$('#main');
-  main.innerHTML = view==='today'?vToday(): view==='workouts'?(detail?vDetail(W(detail)):vWorkouts()): view==='programs'?(prog?vProgram(prog):vPrograms()): view==='timer'?vTimer(): view==='challenges'?vChallenges(): vMeals();
+  main.innerHTML = view==='today'?vToday(): view==='workouts'?(detail?vDetail(W(detail)):vWorkouts()): view==='programs'?(prog?vProgram(prog):vPrograms()): view==='timer'?vTimer(): view==='friends'?vFriends(): view==='progress'?vProgress(): vMeals();
   if(view==='workouts' && !detail) renderList();
   mountAll(main);
   if(view==='timer') updateTimerUI();
+  if(view==='progress') wireCharts(main);
+  const rb=$('#resumebar'); if(rb) rb.remove();
+  if(T.steps.length && !T.done && view!=='timer' && T.elapsed>0){
+    const d=document.createElement('div'); d.className='resume'; d.id='resumebar';
+    d.innerHTML=`<span class="small">${T.running?'Session running':'Session paused'}</span><b>${esc(T.title)}</b><button class="btn sm" data-act="nav" data-v="timer">Resume</button>`;
+    document.body.appendChild(d);
+  }
   window.scrollTo(0,0);
 }
 window.addEventListener('hashchange',route);
 
+/* ---------- First-time setup ---------- */
+UI.setup={name:'',level:1,goal:3,bell:true};
+function vSetup(){
+  const U=UI.setup;
+  return `<form class="setup stack" data-form="setup" style="gap:20px">
+    <div><div class="brand" style="padding:0 0 10px"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><path d="M10 12 Q10 3 16 3 Q22 3 22 12" style="fill:none;stroke:var(--accent);stroke-width:3.2;stroke-linecap:round"/><circle cx="16" cy="20" r="10" style="fill:var(--accent)"/></svg><b>BellForge</b></div>
+      <h1>Let's set you up</h1><p class="sub" style="color:var(--muted);margin-top:6px">Four quick questions so your Today screen fits you. You can change these any time on the Progress tab.</p></div>
+    <label class="f">What should we call you?<input type="text" id="su-name" maxlength="30" required placeholder="First name" value="${esc(U.name)}" autocomplete="given-name"></label>
+    <div><div class="lbl" style="margin-bottom:8px">Your kettlebell experience</div><div class="opts">
+      ${[[1,'Beginner','New to kettlebells'],[2,'Intermediate','Comfortable with swings and cleans'],[3,'Advanced','Snatches, get-ups, double bells']].map(([l,n,d])=>`<button type="button" class="opt" data-act="su" data-k="level" data-v="${l}" aria-pressed="${U.level===l}">${n}<span>${d}</span></button>`).join('')}</div></div>
+    <div><div class="lbl" style="margin-bottom:8px">Workouts per week</div><div class="seg">${[2,3,4,5,6].map(n=>`<button type="button" data-act="su" data-k="goal" data-v="${n}" aria-pressed="${U.goal===n}">${n}</button>`).join('')}</div></div>
+    <div><div class="lbl" style="margin-bottom:8px">Do you have a kettlebell?</div><div class="opts">
+      <button type="button" class="opt" data-act="su" data-k="bell" data-v="1" aria-pressed="${U.bell}">Yes<span>Show me kettlebell workouts</span></button>
+      <button type="button" class="opt" data-act="su" data-k="bell" data-v="0" aria-pressed="${!U.bell}">Not yet<span>Start with bodyweight workouts</span></button></div></div>
+    <button class="btn pri" type="submit" style="padding:14px;font-size:16px">Start training</button>
+  </form>`;
+}
+
 /* ---------- Today ---------- */
+function greet(){ const h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':'Good evening'; }
 function vToday(){
-  const pick=todaysPick(); const st=streak(); const wk=weekDays(); const done=new Set(S.history.map(h=>h.d));
+  const pick=S.prefs.hasBell===false?bwPick():todaysPick(); const st=streak(); const wk=weekDays(); const done=new Set(S.history.map(h=>h.d));
   const weekCount=sessionsBetween(iso(wk[0]),iso(wk[6])).length;
   const m1=iso(new Date(TODAY.getFullYear(),TODAY.getMonth(),1));
   const minMonth=sessionsBetween(m1,iso(TODAY)).reduce((a,h)=>a+h.min,0);
-  const c=S.contests[0]; let contestHtml='<span class="lbl">Challenges</span><h3 style="margin-top:6px">Pick a challenge</h3><p class="small muted" style="margin-top:4px">58 ready-made challenges, from a 5-workout starter to the 10,000 Swing Challenge.</p><button class="btn sm pri" data-act="nav" data-v="challenges" style="margin-top:10px">Browse challenges</button>'; let rankTxt='–';
+  const c=S.contests[0]; let contestHtml='<span class="lbl">Challenges</span><h3 style="margin-top:6px">Pick a challenge</h3><p class="small muted" style="margin-top:4px">58 ready-made challenges, from a 5-workout starter to the 10,000 Swing Challenge.</p><button class="btn sm pri" data-act="nav" data-v="friends" style="margin-top:10px">Browse challenges</button>'; let rankTxt='–';
   if(c){ const sd=standings(c); const myRank=sd.findIndex(x=>x.id==='me')+1; rankTxt=`${myRank}<small> of ${sd.length}</small>`;
-    contestHtml=`<div class="row between"><h3>${esc(c.name)}</h3><span class="chip">${contestDays(c).left} days left</span></div><p class="small muted" style="margin:4px 0 10px">Ranked by ${esc(metricName(c))}</p>${leaderboard(c,4)}<button class="btn sm" data-act="nav" data-v="challenges" style="margin-top:10px">Open challenges</button>`; }
+    contestHtml=`<div class="row between"><h3>${esc(c.name)}</h3><span class="chip">${contestDays(c).left} days left</span></div><p class="small muted" style="margin:4px 0 10px">Ranked by ${esc(metricName(c))}</p>${leaderboard(c,4)}<button class="btn sm" data-act="nav" data-v="friends" style="margin-top:10px">Open challenges</button>`; }
   const o=S.meal.order;
   const mealHtml = o ? `<h3>Next delivery: ${fmtDate(fromIso(o.next))}</h3><p class="muted small" style="margin-top:4px">${o.count} prepped meals · ${money(o.total)} / month</p><button class="btn sm" data-act="nav" data-v="meals" style="margin-top:10px">Manage meal plan</button>`
                      : `<h3>Build your meal plan</h3><p class="muted small" style="margin-top:4px">Set your goal and diet, pick meals, and get a month of prepped meals delivered.</p><button class="btn sm pri" data-act="nav" data-v="meals" style="margin-top:10px">Start meal plan</button>`;
   return `
-  <div class="head"><div><h1>Today</h1><p class="sub">${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</p></div>
+  <div class="head"><div><h1>${greet()}, ${esc(S.profile.name)}</h1><p class="sub">${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</p></div>
     <div class="row"><span class="small muted">Your level</span><div class="seg">${[1,2,3].map(l=>`<button class="${LV[l].cls}" data-act="lvpref" data-l="${l}" aria-pressed="${S.prefs.level===l}"><span class="dot"></span>${LV[l].name}</button>`).join('')}</div></div></div>
   <div class="grid g4" style="margin-bottom:16px">
     <div class="panel tile"><div class="k">Streak</div><div class="v num">${st}<small> days</small></div></div>
     <div class="panel tile"><div class="k">This week</div><div class="v num">${weekCount}<small> of ${S.prefs.goal}</small></div></div>
     <div class="panel tile"><div class="k">Minutes this month</div><div class="v num">${minMonth}</div></div>
-    <div class="panel tile"><div class="k">Contest rank</div><div class="v num">${rankTxt}</div></div>
+    <div class="panel tile"><div class="k">Total workouts</div><div class="v num">${S.history.length}</div></div>
   </div>
   <div class="grid g2">
     <div class="panel">
-      <div class="row between"><span class="lbl">Today's pick</span><span class="code">${pick.code}</span></div>
+      <div class="row between"><span class="lbl">${pick.bw?"Today's pick · no bell needed":"Today's pick"}</span><span class="code">${pick.code}</span></div>
       <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:10px">
         ${pic(pick.items[0].ex)}
         <div class="stack" style="gap:6px"><h2>${esc(pick.name)}</h2>
@@ -848,7 +927,7 @@ function vToday(){
       <div class="row between"><span class="lbl">This week</span><label class="small muted">Weekly goal <select data-ch="goal" id="goal-sel">${[2,3,4,5,6].map(n=>`<option ${S.prefs.goal===n?'selected':''}>${n}</option>`).join('')}</select></label></div>
       <div class="week" style="margin-top:14px">${wk.map(d=>`<div><i class="${done.has(iso(d))?'on':''} ${iso(d)===iso(TODAY)?'today':''}"></i>${d.toLocaleDateString('en-US',{weekday:'narrow'})}</div>`).join('')}</div>
       <div class="bar" style="margin-top:16px"><i style="width:${Math.min(100,weekCount/S.prefs.goal*100)}%"></i></div>
-      <p class="small muted" style="margin-top:8px">${weekCount>=S.prefs.goal?'Weekly goal hit. Anything more is a bonus.':`${S.prefs.goal-weekCount} more session${S.prefs.goal-weekCount===1?'':'s'} to hit your goal. Your friends can see your progress.`}</p>
+      <p class="small muted" style="margin-top:8px">${weekCount>=S.prefs.goal?'Weekly goal hit. Anything more is a bonus.':`${S.prefs.goal-weekCount} more session${S.prefs.goal-weekCount===1?'':'s'} to hit your goal.`}</p>
     </div>
     <div class="panel">${(()=>{ const ids=Object.keys(S.enrolled||{}); if(!ids.length) return `<span class="lbl">Programs</span><h3 style="margin-top:6px">Follow a plan</h3><p class="small muted" style="margin-top:4px">Six multi-week programs that build difficulty week by week.</p><button class="btn sm pri" data-act="nav" data-v="programs" style="margin-top:10px">Browse programs</button>`;
       const p=PM[ids[0]], e=S.enrolled[p.id], k=nextSlot(p); const w=k>=0?W(p.sched[k]):null;
@@ -865,7 +944,8 @@ function vToday(){
     <div class="panel">${contestHtml}</div>
     <div class="panel">${mealHtml}</div>
   </div>
-  <div style="margin-top:16px">${gearPanel()}</div>
+  <div class="hero" style="margin-top:16px"><div><h2>Train with friends</h2><p style="margin-top:4px">Invite friends to BellForge and start a challenge together.</p></div><button class="btn" data-act="invite">Invite friends</button></div>
+  ${S.prefs.hasBell===false?`<div class="panel" style="margin-top:16px"><div class="row between"><div><h3>Ready for a kettlebell?</h3><p class="small muted" style="margin-top:2px">Most people start with 8–12 kg, or 16 kg if they already lift.</p></div><div class="row">${shopBtn('kb')}<button class="btn sm" data-act="hasbell">I have one now</button></div></div></div>`:''}
   <div class="note" style="margin-top:16px"><b>Beta</b><span>Your workouts and progress are saved on this phone. Friend invites, shared leaderboards and meal delivery are coming soon.</span></div>`;
 }
 
@@ -995,7 +1075,7 @@ function finish(){
   stopTimer(); T.done=true; beep(990,.35);
   const min=Math.max(1,Math.round(T.elapsed/60));
   const hw=T.wobj||(T.wid?W(T.wid):null);
-  S.history.push({d:iso(TODAY),id:T.wid||0,min,name:T.title,lv:hw?hw.lv:0,fmt:hw?hw.fmt:'custom',bw:!!(hw&&hw.bw),moves:hw?hw.items.map(i=>i.ex):[T.steps[0]&&T.steps[0].ex].filter(Boolean)});
+  S.history.push({d:iso(TODAY),id:T.wid||0,min,name:T.title,lv:hw?hw.lv:0,fmt:hw?hw.fmt:'custom',bw:!!(hw&&hw.bw),moves:hw?hw.items.map(i=>i.ex):[T.steps[0]&&T.steps[0].ex].filter(Boolean),secs:Math.round(T.elapsed),rounds:T.rounds||0});
   if(T.prog && S.enrolled[T.prog.pid] && !S.enrolled[T.prog.pid].done.includes(T.prog.k)) S.enrolled[T.prog.pid].done.push(T.prog.k);
   S.feed.unshift({t:Date.now(),txt:`You finished ${T.title} (${min} min)`});
   const done=S.history.filter(h=>!h.sample).length;
@@ -1045,7 +1125,7 @@ function vTimer(){
 function renderTimerStage(){
   const box=$('#tstage'); if(!box) return;
   const st=T.steps[T.i]; const w=T.wobj||(T.wid?W(T.wid):null);
-  if(T.done){ box.innerHTML=`<h2>Session complete</h2><p class="muted" style="margin-top:6px">${Math.max(1,Math.round(T.elapsed/60))} minutes logged. Streak: ${streak()} days.</p><div class="row" style="margin-top:12px"><button class="btn pri" data-act="nav" data-v="challenges">See the leaderboard</button><button class="btn" data-act="treset">Do it again</button></div>`; renderSteps(); return; }
+  if(T.done){ box.innerHTML=`<h2>Session complete</h2><p class="muted" style="margin-top:6px">${Math.max(1,Math.round(T.elapsed/60))} minutes logged. Streak: ${streak()} days.</p><div class="row" style="margin-top:12px"><button class="btn pri" data-act="shareworkout">Share your workout</button><button class="btn" data-act="nav" data-v="progress">See your progress</button><button class="btn ghost" data-act="treset">Do it again</button></div>`; renderSteps(); return; }
   let exId=st.ex, head='', sub='';
   if(st.k==='amrap' && w){ exId=w.items[T.amrapIdx].ex; head=st.label; sub=`Rounds logged: <b class="num" id="trounds">${T.rounds}</b>`; }
   else if(st.k==='rest'){ head=st.label; sub='Up next: '+esc(EXM[st.ex].name); }
@@ -1153,63 +1233,137 @@ function leaderboard(c,max){
       <b class="num">${x.score}${c.target&&!team?'<span class="muted small">/'+c.target+'</span>':''}</b></div>`; }).join('')}</div>`;
 }
 function ruleText(t){ return `${t.days} days · ${metricName(t)}`; }
-function vChallenges(){
+function vFriends(){
   const st=streak(); const wk=weekDays(); const weekCount=sessionsBetween(iso(wk[0]),iso(wk[6])).length;
   const D=UI.contestDraft||{name:'',metric:'sessions',days:7,stake:''};
   const cat=UI.tcat||'All'; const tpls=TEMPLATES.filter(t=>cat==='All'||t.cat===cat);
-  const feed=S.feed.slice(0,7).map(f=>({txt:f.txt,when:new Date(f.t).toLocaleDateString('en-US',{month:'short',day:'numeric'})}));
+  const feed=S.feed.slice(0,8).map(f=>({txt:f.txt,when:new Date(f.t).toLocaleDateString('en-US',{month:'short',day:'numeric'})}));
   return `
-  <div class="head"><div><h1>Challenges</h1><p class="sub">Compete with friends and keep each other accountable. Start from one of ${TEMPLATES.length} ready-made challenges or build your own.</p></div></div>
+  <div class="head"><div><h1>Friends &amp; challenges</h1><p class="sub">Invite friends, pick a challenge and keep each other going.</p></div></div>
+  <div class="hero" style="margin-bottom:16px"><div><h2>Invite friends to BellForge</h2><p style="margin-top:4px">Send a download link by text, WhatsApp, email or social media. ${S.invites?`You've shared ${S.invites} invite${S.invites===1?'':'s'}.`:''}</p></div><button class="btn" data-act="invite">Invite friends</button></div>
   <div class="grid g4" style="margin-bottom:16px">
     <div class="panel tile"><div class="k">Your streak</div><div class="v num">${st}<small> days</small></div></div>
-    <div class="panel tile"><div class="k">Weekly goal</div><div class="v num">${weekCount}<small> of ${S.prefs.goal}</small></div></div>
-    <div class="panel tile"><div class="k">Active contests</div><div class="v num">${S.contests.length}</div></div>
-    <div class="panel tile"><div class="k">Friends</div><div class="v num">${S.friends.length}</div></div>
+    <div class="panel tile"><div class="k">This week</div><div class="v num">${weekCount}<small> of ${S.prefs.goal}</small></div></div>
+    <div class="panel tile"><div class="k">Active challenges</div><div class="v num">${S.contests.length}</div></div>
+    <div class="panel tile"><div class="k">Invites shared</div><div class="v num">${S.invites||0}</div></div>
   </div>
+  <div class="note" style="margin-bottom:16px"><b>Usernames</b><span>Accounts with usernames are coming soon. Then you'll add friends by username or invite link and see each other on real leaderboards. For now, challenges track your own progress.</span></div>
+  <h2 style="margin:4px 0 10px">Your challenges</h2>
   <div class="grid g2" style="margin-bottom:16px">
-    ${S.contests.length?'':'<div class="panel"><h2>No active challenges</h2><p class="small muted" style="margin-top:6px">Pick one from the library below. Goal challenges like Show-Up Week work solo, so you can start today.</p></div>'}
-    ${S.contests.map(c=>{ const cd=contestDays(c); return `<div class="panel">
-      <div class="row between"><h2>${esc(c.name)}</h2><span class="chip">${cd.left} of ${cd.len} days left</span></div>
-      <p class="small muted" style="margin:4px 0 12px">Ranked by ${esc(metricName(c))}${c.stake?' · Stakes: '+esc(c.stake):''}</p>
-      ${leaderboard(c)}
+    ${S.contests.length?'':'<div class="empty">No challenges yet. Pick one from the library below. Goal challenges like Show-Up Week work solo, so you can start today.</div>'}
+    ${S.contests.map(c=>{ const cd=contestDays(c); const sc=scoreFor(c,'me'); return `<div class="panel">
+      <div class="row between"><h3>${esc(c.name)}</h3><span class="chip">${cd.left} of ${cd.len} days left</span></div>
+      <p class="small muted" style="margin:4px 0 10px">${esc(metricName(c))}</p>
+      ${c.target?`<div class="row between small"><b class="num">${sc} / ${c.target}${unit(c)?' '+unit(c):''}</b><span class="muted">${sc>=c.target?'Goal hit':Math.round(sc/c.target*100)+'%'}</span></div><div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,sc/c.target*100)}%"></i></div>`
+        :`<div class="row between small"><span>Your score</span><b class="num">${sc}${unit(c)?' '+unit(c):''}</b></div><div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,cd.el/cd.len*100)}%"></i></div><p class="small muted" style="margin-top:4px">Day ${cd.el} of ${cd.len}</p>`}
+      <div class="row" style="margin-top:10px"><button class="btn sm" data-act="invite" data-c="${esc(c.name)}">Invite friends to this</button><button class="btn ghost sm" data-act="cquit" data-id="${c.id}">Leave</button></div>
     </div>`; }).join('')}
   </div>
   <div class="panel" style="margin-bottom:16px">
     <div class="row between" style="margin-bottom:12px"><h2>Challenge library <span class="muted">(${TEMPLATES.length})</span></h2>
       <div class="seg" role="group" aria-label="Category" style="flex-wrap:wrap">${TCATS.map(x=>`<button data-act="tcat" data-c="${x}" aria-pressed="${cat===x}">${x}</button>`).join('')}</div></div>
-    <div class="tgrid">${tpls.map(t=>`<div class="tcard"><span class="lbl">${esc(t.cat)}</span><h3>${esc(t.name)}</h3><p class="small">${esc(t.desc)}</p><p class="small muted">${esc(ruleText(t.wid==='pick'?{...t,wid:todaysPick().id}:t))}</p><button class="btn sm pri" data-act="tpl" data-i="${t.i}">Use this challenge</button></div>`).join('')}</div>
+    <div class="tgrid">${tpls.map(t=>`<div class="tcard"><span class="lbl">${esc(t.cat)}</span><h3>${esc(t.name)}</h3><p class="small">${esc(t.desc)}</p><p class="small muted">${esc(ruleText(t.wid==='pick'?{...t,wid:todaysPick().id}:t))}</p><button class="btn sm pri" data-act="tpl" data-i="${t.i}">Start this challenge</button></div>`).join('')}</div>
   </div>
   <div class="grid g2">
     <form class="panel stack" data-form="contest" id="cform">
-      <h2>${D.tpl?'Launch: '+esc(D.name):'Create your own'}</h2>
-      ${D.tpl?`<div class="note"><span>${esc(D.desc)}<br><span class="muted small">${esc(ruleText(D))}</span></span></div><button type="button" class="btn ghost sm" data-act="tplclear" style="align-self:flex-start;padding-left:0">Build a custom contest instead</button>`:''}
-      <label class="f">Contest name<input type="text" id="cn" required maxlength="40" placeholder="e.g. 30-Day Swing Club" value="${esc(D.name)}"></label>
+      <h2>${D.tpl?'Start: '+esc(D.name):'Make your own challenge'}</h2>
+      ${D.tpl?`<div class="note"><span>${esc(D.desc)}<br><span class="muted small">${esc(ruleText(D))}</span></span></div><button type="button" class="btn ghost sm" data-act="tplclear" style="align-self:flex-start;padding-left:0">Make a custom challenge instead</button>`:''}
+      <label class="f">Challenge name<input type="text" id="cn" required maxlength="40" placeholder="e.g. 30-Day Swing Club" value="${esc(D.name)}"></label>
       ${D.tpl?'':`<div class="row" style="gap:10px">
         <label class="f" style="flex:1 1 160px">Ranked by<select id="cm">
           <option value="sessions" ${D.metric==='sessions'?'selected':''}>Sessions completed</option>
           <option value="minutes" ${D.metric==='minutes'?'selected':''}>Minutes trained</option>
           <option value="streak" ${D.metric==='streak'?'selected':''}>Longest streak</option>
-          <option value="team" ${D.metric==='team'?'selected':''}>Team total minutes</option>
           ${D.wid?`<option value="workout" selected>Completions of ${esc(W(D.wid).name)}</option>`:''}
         </select></label>
         <label class="f" style="flex:1 1 100px">Length<select id="cd">${[7,14,21,30].map(n=>`<option value="${n}" ${D.days===n?'selected':''}>${n} days</option>`).join('')}</select></label>
         <label class="f" style="flex:1 1 100px">Goal (optional)<input type="number" id="ct" min="1" max="100000" placeholder="None"></label>
       </div>`}
-      <div><div class="lbl" style="margin-bottom:6px">Invite friends</div><div class="checks">${S.friends.map(f=>`<label><input type="checkbox" name="cf" value="${f.id}">${esc(f.name)}</label>`).join('')}</div></div>
       <label class="f">Stakes (optional)<input type="text" id="cs" maxlength="60" placeholder="e.g. Loser picks next month's workout" value="${esc(D.stake||'')}"></label>
-      <button class="btn pri" type="submit">Create contest &amp; get invite link</button>
-      ${UI.lastInvite?`<div class="linkbox"><span style="flex:1">${UI.lastInvite}</span><button type="button" class="btn sm" data-act="copy" data-text="${UI.lastInvite}">Copy</button></div><p class="small muted">Example link. Invites go out for real once the app has its backend.</p>`:''}
+      <button class="btn pri" type="submit">Start challenge</button>
     </form>
     <div class="panel">
-      <h2>Friends</h2>
-      <div class="lb" style="margin-top:10px">${S.friends.map(f=>`<div class="lbrow" style="grid-template-columns:34px 1fr auto"><span class="av">${esc(initials(f.name))}</span>
-        <div><div style="font-weight:600">${esc(f.name)} ${f.status==='pending'?'<span class="chip pill-warn">Invite pending</span>':''}</div><div class="small muted">${f.status==='pending'?'Waiting to accept':`${f.streak}-day streak · active ${esc(f.last)}`}</div></div>
-        ${f.status==='pending'?'':`<button class="btn sm" data-act="nudge" data-id="${f.id}" ${S.nudged.includes(f.id)?'aria-pressed="true"':''}>${S.nudged.includes(f.id)?'Nudged':'Nudge'}</button>`}</div>`).join('')}</div>
-      <form class="row" data-form="friend" style="margin-top:12px"><input type="text" id="fa" placeholder="Friend's username or email" aria-label="Friend's username or email" style="flex:1" required maxlength="60"><button class="btn" type="submit">Add friend</button></form>
-      <h2 style="margin-top:20px">Activity</h2><div class="feed" style="margin-top:8px">${feed.length?feed.map(f=>`<div><span>${esc(f.txt)}</span><span class="muted small" style="white-space:nowrap">${f.when}</span></div>`).join(''):'<p class="small muted" style="padding:8px 0">Your finished workouts and challenges will show here.</p>'}</div>
-      <p class="small muted" style="margin-top:10px">Friend invites go live when accounts launch. Until then, challenges track your own progress.</p>
+      <h2>Activity</h2><div class="feed" style="margin-top:8px">${feed.length?feed.map(f=>`<div><span>${esc(f.txt)}</span><span class="muted small" style="white-space:nowrap">${f.when}</span></div>`).join(''):'<p class="small muted" style="padding:8px 0">Your finished workouts, challenges and invites will show here.</p>'}</div>
     </div>
   </div>`;
+}
+
+/* ---------- Progress ---------- */
+function weeksBack(n){ const m=monday(TODAY); return [...Array(n)].map((_,i)=>addDays(m,-7*(n-1-i))); }
+function longestStreak(){ const days=[...new Set(S.history.map(h=>h.d))].sort(); let best=0,cur=0,prev=null; days.forEach(d=>{ cur=(prev && iso(addDays(fromIso(prev),1))===d)?cur+1:1; best=Math.max(best,cur); prev=d; }); return best; }
+function mmssLong(sec){ sec=Math.round(sec||0); return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+function weeklyChart(){
+  const wks=weeksBack(12); const vals=wks.map(w=>sessionsBetween(iso(w),iso(addDays(w,6))).length);
+  const max=Math.max(S.prefs.goal,...vals,1); const top=Math.ceil(max/2)*2;
+  const W0=420,H0=190,pl=24,pr=6,pt=14,pb=24, cw=(W0-pl-pr)/12, bw=Math.min(28,cw*0.6), y=v=>pt+(H0-pt-pb)*(1-v/top);
+  let g=''; for(let v=0;v<=top;v+=top/2){ g+=`<line class="gl" x1="${pl}" x2="${W0-pr}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${pl-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`; }
+  const goalY=y(S.prefs.goal);
+  g+=`<line x1="${pl}" x2="${W0-pr}" y1="${goalY}" y2="${goalY}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+  wks.forEach((w,i)=>{ const x=pl+cw*i+(cw-bw)/2, v=vals[i], h=(H0-pt-pb)*(v/top), lab=w.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    if(v>0) g+=`<rect class="hit" x="${pl+cw*i}" y="${pt}" width="${cw}" height="${H0-pt-pb}" tabindex="0" data-tip="Week of ${lab}: ${v} workout${v===1?'':'s'}"/><path class="bar" d="M${x},${y(0)} V${y(v)+4} q0,-4 4,-4 h${bw-8} q4,0 4,4 V${y(0)} Z"/>`;
+    else g+=`<rect class="hit" x="${pl+cw*i}" y="${pt}" width="${cw}" height="${H0-pt-pb}" tabindex="0" data-tip="Week of ${lab}: no workouts"/>`;
+    if(i%3===0||i===11) g+=`<text class="ax" x="${pl+cw*i+cw/2}" y="${H0-8}" text-anchor="middle">${i===11?'This week':lab}</text>`;
+    if(i===11 && v>0) g+=`<text x="${x+bw/2}" y="${y(v)-6}" text-anchor="middle" style="fill:var(--ink);font-size:12px;font-weight:600">${v}</text>`; });
+  return `<div class="chart" role="img" aria-label="Workouts per week for the last 12 weeks"><svg viewBox="0 0 ${W0} ${H0}">${g}</svg><div class="tip"></div></div>`;
+}
+function heatmap(){
+  const wks=weeksBack(12); const byDay={}; S.history.forEach(h=>{ byDay[h.d]=(byDay[h.d]||0)+h.min; });
+  const lvl=m=>!m?'':m<15?'l1':m<30?'l2':m<45?'l3':'l4';
+  let cells=''; const days=['Mon','','Wed','','Fri','','Sun'];
+  for(let r=0;r<7;r++){ cells+=`<span>${days[r]}</span>`; wks.forEach(w=>{ const d=addDays(w,r); const k=iso(d); const m=byDay[k]||0; const fut=d>TODAY;
+    cells+=`<i class="${fut?'fut':lvl(m)}" tabindex="${fut?-1:0}" data-tip="${d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}: ${m?m+' min':'rest day'}"></i>`; }); }
+  return `<div class="chart"><div class="heat" style="--cols:12">${cells}</div><div class="tip"></div>
+    <div class="hlegend">Less <i style="background:var(--surface-2);border:1px solid var(--line)"></i><i class="l1" style="background:color-mix(in oklab,var(--accent) 30%,var(--surface))"></i><i style="background:color-mix(in oklab,var(--accent) 55%,var(--surface))"></i><i style="background:color-mix(in oklab,var(--accent) 80%,var(--surface))"></i><i style="background:var(--accent)"></i> More minutes</div></div>`;
+}
+function muscleBars(){
+  const since=iso(addDays(TODAY,-29)); const cnt={};
+  S.history.filter(h=>h.d>=since).forEach(h=>{ const mv=h.moves||(W(h.id)?W(h.id).items.map(i=>i.ex):[]); const seen=new Set(); mv.forEach(ex=>{ const e=EXM[ex]; if(e) e.prim.forEach(m=>seen.add(m)); }); seen.forEach(m=>cnt[m]=(cnt[m]||0)+1); });
+  const rows=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,10); if(!rows.length) return '<div class="empty">Finish a workout to see which muscles you have trained.</div>';
+  const mx=rows[0][1];
+  return rows.map(([m,n])=>`<div class="mbar"><span>${esc(m)}</span><div><div class="t" style="width:${Math.max(4,n/mx*100)}%"></div></div><span class="num muted" style="text-align:right">${n}</span></div>`).join('')+'<p class="small muted" style="margin-top:6px">Workouts that trained each muscle as a primary mover, last 30 days.</p>';
+}
+function personalBests(){
+  const rows=CLASSICS.map(c=>{ const hs=S.history.filter(h=>h.id===c.id); if(!hs.length) return null;
+    const am=c.steps.some(s=>s.k==='amrap'); const best=am? Math.max(...hs.map(h=>h.rounds||0)) : Math.min(...hs.filter(h=>h.secs).map(h=>h.secs).concat([Infinity]));
+    return `<tr><td>${esc(c.name)}</td><td class="n">${am?(best?best+' rounds':'–'):(isFinite(best)?mmssLong(best):'–')}</td><td class="n">${hs.length}×</td></tr>`; }).filter(Boolean);
+  return rows.length?`<table class="tbl"><thead><tr><th>Classic</th><th style="text-align:right">Best</th><th style="text-align:right">Done</th></tr></thead><tbody>${rows.join('')}</tbody></table>`:'<div class="empty">Do a Kettlebell Classic to start tracking personal bests: fastest time, or most rounds.</div>';
+}
+function vProgress(){
+  const P=S.profile; const tot=S.history.length; const mins=S.history.reduce((a,h)=>a+h.min,0);
+  const recent=S.history.slice(-10).reverse();
+  return `
+  <div class="head"><div><h1>Your progress</h1><p class="sub">${esc(P.name)} · training since ${fromIso(P.created).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</p></div></div>
+  <div class="grid g4" style="margin-bottom:16px">
+    <div class="panel tile"><div class="k">Workouts</div><div class="v num">${tot}</div></div>
+    <div class="panel tile"><div class="k">Minutes</div><div class="v num">${mins.toLocaleString()}</div></div>
+    <div class="panel tile"><div class="k">Current streak</div><div class="v num">${streak()}<small> days</small></div></div>
+    <div class="panel tile"><div class="k">Best streak</div><div class="v num">${longestStreak()}<small> days</small></div></div>
+  </div>
+  <div class="grid g2" style="margin-bottom:16px">
+    <div class="panel"><h3>Workouts per week</h3><p class="small muted" style="margin:2px 0 10px">Last 12 weeks. The dashed line is your goal of ${S.prefs.goal} a week.</p>${tot?weeklyChart():'<div class="empty">Your weekly chart starts with your first workout.</div>'}</div>
+    <div class="panel"><h3>Training calendar</h3><p class="small muted" style="margin:2px 0 10px">Minutes trained each day, last 12 weeks.</p>${heatmap()}</div>
+    <div class="panel"><h3>Muscles trained</h3><p class="small muted" style="margin:2px 0 10px">Last 30 days</p>${muscleBars()}</div>
+    <div class="panel"><h3>Personal bests</h3><p class="small muted" style="margin:2px 0 10px">Kettlebell Classics</p>${personalBests()}</div>
+  </div>
+  <div class="panel" style="margin-bottom:16px"><h3>Recent workouts</h3>
+    ${recent.length?`<table class="tbl" style="margin-top:8px"><thead><tr><th>Date</th><th>Workout</th><th style="text-align:right">Time</th><th style="text-align:right">Result</th></tr></thead><tbody>${recent.map(h=>`<tr><td class="num" style="white-space:nowrap">${fromIso(h.d).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</td><td>${esc(h.name||(W(h.id)?W(h.id).name:'Workout'))}</td><td class="n">${h.min} min</td><td class="n">${h.rounds?h.rounds+' rounds':'–'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty" style="margin-top:8px">No workouts yet. Your history will show here.</div>'}
+  </div>
+  <form class="panel stack" data-form="profile">
+    <h3>Your settings</h3>
+    <div class="row" style="gap:10px;align-items:flex-end">
+      <label class="f" style="flex:1 1 180px">Name<input type="text" id="pf-name" maxlength="30" value="${esc(P.name)}"></label>
+      <label class="f">Level<select id="pf-level">${[1,2,3].map(l=>`<option value="${l}" ${S.prefs.level===l?'selected':''}>${LV[l].name}</option>`).join('')}</select></label>
+      <label class="f">Weekly goal<select id="pf-goal">${[2,3,4,5,6].map(n=>`<option ${S.prefs.goal===n?'selected':''}>${n}</option>`).join('')}</select></label>
+      <label class="f">Kettlebell<select id="pf-bell"><option value="1" ${S.prefs.hasBell!==false?'selected':''}>I have one</option><option value="0" ${S.prefs.hasBell===false?'selected':''}>Not yet</option></select></label>
+      <button class="btn pri" type="submit">Save</button>
+    </div>
+  </form>
+  <div style="margin-top:16px">${gearPanel()}</div>`;
+}
+function wireCharts(root){
+  root.querySelectorAll('.chart').forEach(ch=>{ const tip=ch.querySelector('.tip'); if(!tip) return;
+    const show=el=>{ const r=el.getBoundingClientRect(), cr=ch.getBoundingClientRect(); tip.textContent=el.dataset.tip; tip.style.left=(r.left-cr.left+r.width/2)+'px'; tip.style.top=(r.top-cr.top)+'px'; tip.classList.add('on'); };
+    ch.querySelectorAll('[data-tip]').forEach(el=>{ el.addEventListener('pointerenter',()=>show(el)); el.addEventListener('focus',()=>show(el)); el.addEventListener('click',()=>show(el)); el.addEventListener('pointerleave',()=>tip.classList.remove('on')); el.addEventListener('blur',()=>tip.classList.remove('on')); }); });
 }
 
 /* ---------- Programs ---------- */
@@ -1390,6 +1544,36 @@ function vMeals(){
   </div>`;
 }
 
+/* ---------- update check ---------- */
+// Checks the store for a newer BellForge on launch and when the app comes back to the foreground (at most every 6 hours).
+async function checkForUpdate(force){
+  const Cap=window.Capacitor; const AU=Cap&&Cap.isNativePlatform&&Cap.isNativePlatform()&&Cap.Plugins&&Cap.Plugins.AppUpdate; if(!AU) return;
+  const now=Date.now(); if(!force && S.lastUpdateCheck && now-S.lastUpdateCheck<6*36e5) return;
+  S.lastUpdateCheck=now; save();
+  try{
+    const info=await AU.getAppUpdateInfo();
+    if(info && info.updateAvailability===2){ // UPDATE_AVAILABLE
+      if($('#updbar')) return;
+      const d=document.createElement('div'); d.className='upd'; d.id='updbar'; d.setAttribute('role','status');
+      d.innerHTML=`<span><b>New version available</b>${info.availableVersionName?' ('+esc(info.availableVersionName)+')':''}. Update for the latest workouts and fixes.</span><button class="btn sm pri" data-act="doupdate">Update now</button><button class="btn ghost sm" data-act="laterupdate" aria-label="Remind me later">Later</button>`;
+      document.body.appendChild(d); UI.updInfo=info;
+    }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkForUpdate(false); });
+
+/* ---------- sharing ---------- */
+const STORE_URL='https://play.google.com/store/apps/details?id=com.quants.bellforge';
+async function shareText(text,title,onDone){
+  const full=text+' '+STORE_URL+' (Android; iPhone coming soon)';
+  try{
+    const Cap=window.Capacitor; const Sh=Cap&&Cap.isNativePlatform&&Cap.isNativePlatform()&&Cap.Plugins&&Cap.Plugins.Share;
+    if(Sh){ await Sh.share({title,text:text+' ',url:STORE_URL,dialogTitle:title}); onDone&&onDone(); return; }
+    if(navigator.share){ await navigator.share({title,text:full}); onDone&&onDone(); return; }
+  }catch(e){ if(e&&(e.name==='AbortError'||/cancel/i.test(e.message||''))) return; }
+  try{ await navigator.clipboard.writeText(full); toast('Invite message copied. Paste it into a text or post.'); onDone&&onDone(); }catch(e){ toast('Sharing is not available here.'); }
+}
+
 /* ---------- events ---------- */
 const ACT={
   nav:b=>{ location.hash=b.dataset.v; },
@@ -1404,7 +1588,7 @@ const ACT={
     const on=S.saved.includes(id); b.setAttribute('aria-pressed',on); b.textContent= b.closest('.wcard')?(on?'Saved':'Save offline'):(on?'Saved for offline':'Save for offline');
     const fb=document.querySelector('[data-act="fsaved"]'); if(fb) fb.textContent=`Saved offline (${S.saved.length})`; },
   start:b=>{ const w0=W(+b.dataset.id); const {w,swapped}=withSwaps(w0); loadTimer(w===w0?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); if(location.hash==='#timer') route(); else location.hash='timer'; },
-  challenge:b=>{ const w=W(+b.dataset.id); UI.contestDraft={name:(w.name+' Showdown').slice(0,40),metric:'workout',days:7,wid:w.id,stake:''}; location.hash='challenges'; },
+  challenge:b=>{ const w=W(+b.dataset.id); UI.contestDraft={name:(w.name+' Showdown').slice(0,40),metric:'workout',days:7,wid:w.id,stake:''}; location.hash='friends'; },
   ttoggle:()=>{ if(T.done) return; if(T.running) stopTimer(); else startTimer(); updateTimerUI(); },
   tskip:()=>{ if(T.done) return; if(T.i<T.steps.length-1){ goStep(T.i+1); updateTimerUI(); } else finish(); },
   tback:()=>{ if(T.done) return; goStep(Math.max(0,T.i-1)); updateTimerUI(); },
@@ -1413,6 +1597,14 @@ const ACT={
   tclear:()=>{ stopTimer(); T.steps=[]; route(); },
   tround:()=>{ T.rounds++; const r=$('#trounds'); if(r) r.textContent=T.rounds; beep(740,.08); },
   copy:b=>copyText(b.dataset.text),
+  su:b=>{ const k=b.dataset.k, v=b.dataset.v; const n=$('#su-name'); if(n) UI.setup.name=n.value; UI.setup[k]= k==='bell'? v==='1' : +v; route(); },
+  doupdate:async()=>{ const AU=window.Capacitor.Plugins.AppUpdate; const i=UI.updInfo||{};
+    try{ if(i.immediateUpdateAllowed) await AU.performImmediateUpdate(); else await AU.openAppStore(); }catch(e){ try{ await AU.openAppStore(); }catch(_){} } },
+  laterupdate:()=>{ const b=$('#updbar'); if(b) b.remove(); },
+  hasbell:()=>{ S.prefs.hasBell=true; save(); route(); toast('Kettlebell workouts are back on your Today screen'); },
+  invite:b=>{ const c=b.dataset.c; shareText(`${c?`Join my "${c}" challenge on BellForge! `:''}I'm training with BellForge: kettlebell workouts with muscle maps, classic workouts and challenges. Get it here:`,'Invite friends to BellForge',()=>{ S.invites=(S.invites||0)+1; S.feed.unshift({t:Date.now(),txt:'You shared an invite'}); save(); route(); }); },
+  shareworkout:()=>{ const h=S.history[S.history.length-1]; if(!h) return; shareText(`I just finished ${h.name||'a workout'} on BellForge${h.rounds?`: ${h.rounds} rounds`:h.secs?` in ${mmssLong(h.secs)}`:''}. ${streak()>1?`${streak()}-day streak. `:''}Train with me:`,'Share your workout'); },
+  cquit:b=>{ S.contests=S.contests.filter(c=>c.id!==b.dataset.id); save(); route(); toast('Challenge removed'); },
   tcat:b=>{ UI.tcat=b.dataset.c; route(); const el=document.querySelector('.tgrid'); if(el) el.closest('.panel').scrollIntoView(); },
   tpl:b=>{ const t=TEMPLATES[+b.dataset.i]; UI.contestDraft={...t,tpl:true,wid:t.wid==='pick'?todaysPick().id:t.wid,stake:''}; route(); const f=$('#cform'); if(f){ f.scrollIntoView({behavior:REDUCE?'auto':'smooth'}); } },
   tplclear:()=>{ UI.contestDraft=null; route(); const f=$('#cform'); if(f) f.scrollIntoView(); },
@@ -1420,7 +1612,7 @@ const ACT={
   pquit:b=>{ delete S.enrolled[b.dataset.p]; save(); route(); },
   pstart:b=>{ const p=PM[b.dataset.p], k=+b.dataset.k; const w0=W(p.sched[k]); const {w,swapped}=withSwaps(w0); loadTimer(w===w0?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); T.prog={pid:p.id,k}; location.hash='timer'; },
   pnext:b=>{ const p=PM[b.dataset.p]; const k=nextSlot(p); if(k<0){ location.hash='p-'+p.id; return; } const w0=W(p.sched[k]); const {w,swapped}=withSwaps(w0); loadTimer(w===w0?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); T.prog={pid:p.id,k}; location.hash='timer'; },
-  pchal:b=>{ const p=PM[b.dataset.p]; UI.contestDraft={tpl:true,name:p.name.slice(0,40),desc:`Do the ${p.name} program together. Most program sessions completed wins.`,metric:'sessions',days:p.weeks*7,stake:''}; location.hash='challenges'; setTimeout(()=>{ const f=$('#cform'); if(f) f.scrollIntoView(); },50); },
+  pchal:b=>{ const p=PM[b.dataset.p]; UI.contestDraft={tpl:true,name:p.name.slice(0,40),desc:`Do the ${p.name} program together. Most program sessions completed wins.`,metric:'sessions',days:p.weeks*7,stake:''}; location.hash='friends'; setTimeout(()=>{ const f=$('#cform'); if(f) f.scrollIntoView(); },50); },
   nudge:b=>{ const id=b.dataset.id; if(!S.nudged.includes(id)){ S.nudged.push(id); S.feed.unshift({t:Date.now(),txt:`You nudged ${friend(id).name}`}); save(); route(); toast(`${friend(id).name} will get a nudge to train today`); } },
   mswap:b=>{ const d=+b.dataset.d, si=+b.dataset.s; const slot=SLOTS[S.meal.mpd][si]; const el=eligible(slot); const cur=el.findIndex(x=>x.id===S.meal.plan[d][si]); S.meal.plan[d][si]=el[(cur+1)%el.length].id; save(); route(); },
   mregen:()=>{ const slots=SLOTS[S.meal.mpd]; S.meal.plan=DAYS.map(()=>slots.map(s=>{ const el=eligible(s); return el.length?el[Math.floor(Math.random()*el.length)].id:null; })); save(); route(); },
@@ -1448,18 +1640,23 @@ document.addEventListener('submit',e=>{
     loadTimer(steps,null,`Custom: ${EXM[ex].name}`); route(); }
   if(f==='contest'){ const name=$('#cn').value.trim(); if(!name) return; const D=UI.contestDraft||{};
     let c;
-    const members=[{id:'me'},...[...document.querySelectorAll('input[name="cf"]:checked')].map(x=>({id:x.value,st:'invited'}))];
+    const members=[{id:'me'}];
     const code=Math.random().toString(36).slice(2,10).toUpperCase();
     if(D.tpl){ c={id:'c'+Date.now(),name,metric:D.metric,start:iso(TODAY),end:iso(addDays(TODAY,D.days-1)),members,stake:$('#cs').value.trim(),code};
       ['target','moves','lv','fmt','wid'].forEach(k=>{ if(D[k]!=null) c[k]=D[k]; }); }
     else { const days=+$('#cd').value, metric=$('#cm').value, tg=+$('#ct').value;
       c={id:'c'+Date.now(),name,metric,start:iso(TODAY),end:iso(addDays(TODAY,days-1)),members,stake:$('#cs').value.trim(),code};
       if(tg>0) c.target=tg; if(metric==='workout' && D.wid) c.wid=D.wid; }
-    S.contests.unshift(c); S.feed.unshift({t:Date.now(),txt:`You started ${name}`}); UI.contestDraft=null; UI.lastInvite=null; save(); route(); toast('Challenge started. Friend invites arrive with accounts.'); }
+    S.contests.unshift(c); S.feed.unshift({t:Date.now(),txt:`You started ${name}`}); UI.contestDraft=null; UI.lastInvite=null; save(); route(); toast('Challenge started. Invite friends to join you.'); }
+  if(f==='setup'){ const name=$('#su-name').value.trim(); if(!name){ $('#su-name').focus(); return; } const U=UI.setup;
+    S.profile={name,created:iso(TODAY)}; S.prefs.level=U.level; S.prefs.goal=U.goal; S.prefs.hasBell=U.bell; if(!U.bell) UI.filters.mode='bw';
+    save(); location.hash='today'; route(); toast('All set, '+name+'. Let\'s train.'); }
+  if(f==='profile'){ const n=$('#pf-name').value.trim(); if(n) S.profile.name=n; S.prefs.level=+$('#pf-level').value; S.prefs.goal=+$('#pf-goal').value; S.prefs.hasBell=$('#pf-bell').value==='1'; save(); route(); toast('Settings saved'); }
   if(f==='friend'){ const v=$('#fa').value.trim(); if(!v) return; S.friends.push({id:'u'+Date.now(),name:v.includes('@')?v.split('@')[0]:v,streak:0,mpd:8,spw:3,last:'–',status:'pending'}); save(); route(); toast(`Friend request ready for ${v}`); }
 });
 
 route();
+checkForUpdate(true);
 })();
 </script>
 </body>
