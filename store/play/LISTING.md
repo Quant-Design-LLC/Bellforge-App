@@ -171,6 +171,49 @@ Both stores require a public URL. The policy is at `docs/privacy-policy.html` in
 
 ---
 
+## Version 1.0.13 release notes (Play Console > Open testing > Create new release)
+
+```
+<en-US>
+New in this update
+- Free accounts (optional): pick a username so friends can find you
+- Add friends by username and see each other's workouts
+- Shared challenges with live leaderboards
+- Your training history is backed up, so a new phone doesn't wipe it
+- Quick setup, a Friends tab and a Progress tab with charts and personal bests
+- The app tells you when a new version is ready
+</en-US>
+```
+
+## Play Console changes for 1.0.13 (accounts)
+
+Do these before sending 1.0.13 for review.
+
+**Policy and programs > App content > Data safety** (edit your answers)
+- Does your app collect or share any of the required user data types? **Yes**
+- Is all of the user data collected by your app encrypted in transit? **Yes**
+- Which ways can users request that their data is deleted? **My app lets users create an account, and they can request deletion in the app and outside it**
+- Delete account URL: **https://quant-design-llc.github.io/bellforge/delete-account/**
+- Data types (for each: Collected = Yes, Shared = No, Processed ephemerally = No, Optional = **Users can choose whether this data is collected**):
+  - Personal info > **Name** (display name). Purpose: App functionality, Account management
+  - Personal info > **Email address**. Purpose: App functionality, Account management
+  - Personal info > **User IDs** (username). Purpose: App functionality, Account management
+  - Health and fitness > **Fitness info** (workout history, minutes, challenge scores). Purpose: App functionality
+  - App activity > **Other user-generated content** (challenge names, activity updates). Purpose: App functionality
+- Not collected: location, financial info, health info (meal inputs stay on the phone), messages, photos, contacts, device IDs.
+
+**Content rating**: start a new questionnaire with the same answers as before, except
+- "Does the app allow users to interact or exchange content with each other?" **Yes** (users can add friends and see each other's usernames, workouts and challenge names)
+- "Does the app share the user's current physical location?" **No**
+- Submit it. The new rating ID replaces 98513ae9-772c-8626-8fc0-3fbaa870758e.
+
+**App access**: choose "All or some functionality in my app is restricted", then add instructions:
+- Name: Friends and challenges
+- Username / password: a test account you create in the app (e.g. playreview@quant-design.com)
+- Note: "Accounts are free and optional. Reviewers can also create one on the Friends tab."
+
+**Privacy policy URL** stays the same: https://quant-design-llc.github.io/bellforge/privacy/ (updated Nov 15, 2026).
+
 ## Version 1.0.12 release notes (Play Console > Open testing > Create new release)
 
 ```

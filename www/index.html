@@ -164,6 +164,19 @@ body.setup-mode .app{grid-template-columns:1fr}
 .tbl td{padding:8px 8px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
 .tbl td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .empty{padding:18px;text-align:center;color:var(--muted);font-size:14px;border:1px dashed var(--line);border-radius:var(--r)}
+/* accounts */
+.err{color:var(--bad);font-size:13.5px}
+.person{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.person:last-child{border-bottom:0}
+.person .av{flex:none}
+.person .who{flex:1;min-width:0}
+.person .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.handle{font-family:var(--mono,monospace);font-size:13px;color:var(--muted)}
+.uname{display:inline-flex;gap:8px;align-items:center;background:var(--surface);color:var(--ink);border-radius:99px;padding:6px 8px 6px 14px;font-weight:700;margin-top:10px}
+.lb{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;padding:6px 0;font-size:14px;border-bottom:1px solid var(--line)}
+.lb:last-child{border-bottom:0}
+.lb.me{font-weight:700}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block}
 /* filters */
 .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
@@ -171,7 +184,7 @@ body.setup-mode .app{grid-template-columns:1fr}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .seg button .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
-select,input[type=text],input[type=number],input[type=email]{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;font-size:14px;min-width:0}
+select,input[type=text],input[type=number],input[type=email],input[type=password]{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;font-size:14px;min-width:0}
 input[type=text].search{flex:1 1 220px}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 label.f > select,label.f > input{text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink)}
@@ -296,6 +309,7 @@ pre.payload{background:var(--surface-2);border:1px solid var(--line);border-radi
 <nav class="tabbar" id="tabbar" aria-label="Main"></nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="vendor/supabase.js"></script>
 <script>
 (function(){
 'use strict';
@@ -768,7 +782,7 @@ if(S && S.v===2){
   S.v=3;
 }
 if(!S || S.v!==3) S=seedState();
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} try{ queueBackup(); }catch(e){} }
 save();
 const UI={filters:{mode:'kb',lv:0,focus:'',fmt:'',dur:'',equip:'',q:'',saved:false,limit:24}, contestDraft:null, lastInvite:null};
 
@@ -851,7 +865,7 @@ function route(){
   else if(/^p-p\d+$/.test(h) && PM[h.slice(2)]){ view='programs'; prog=PM[h.slice(2)]; }
   else if(h==='challenges') view='friends';
   else if(h==='timer' || VIEWS.some(v=>v[0]===h)) view=h;
-  if(!S.profile){ document.body.classList.add('setup-mode'); $('#main').innerHTML=vSetup(); window.scrollTo(0,0); return; }
+  if(!S.profile){ document.body.classList.add('setup-mode'); $('#main').innerHTML=UI.setupSignin?vSetupSignin():vSetup(); return; }
   document.body.classList.remove('setup-mode');
   renderNav(view);
   const main=$('#main');
@@ -860,6 +874,7 @@ function route(){
   mountAll(main);
   if(view==='timer') updateTimerUI();
   if(view==='progress') wireCharts(main);
+  if(view==='friends') cloudLoad(false);
   const rb=$('#resumebar'); if(rb) rb.remove();
   if(T.steps.length && !T.done && view!=='timer' && T.elapsed>0){
     const d=document.createElement('div'); d.className='resume'; d.id='resumebar';
@@ -869,6 +884,170 @@ function route(){
   window.scrollTo(0,0);
 }
 window.addEventListener('hashchange',route);
+
+/* ---------- Accounts (Supabase) ---------- */
+const SB_URL='https://kwxwcuvsaldmebqfxwxy.supabase.co', SB_KEY='sb_publishable_SA6pj51ZNUxcN5Wb_LPTOg_-cObg6f2';
+const CL={user:null,profile:null,friends:[],incoming:[],outgoing:[],people:{},acts:[],chals:[],loading:false,loaded:false,lastLoad:0,offline:false};
+let sb=null;
+try{ if(window.supabase&&window.supabase.createClient) sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'bellforge-auth'}}); }catch(e){ sb=null; }
+const uid=()=>CL.user?CL.user.id:null;
+const signedIn=()=>!!(CL.user&&CL.profile);
+const pname=id=>{ if(id===uid()) return 'You'; const p=CL.people[id]; return p?(p.display_name||'@'+p.username):'A friend'; };
+const phandle=id=>{ const p=CL.people[id]; return p?'@'+p.username:''; };
+function rerender(views){ const v=(location.hash||'#today').slice(1)||'today'; if(views && !views.includes(v==='challenges'?'friends':v)) return; const a=document.activeElement; if(a && /INPUT|SELECT|TEXTAREA/.test(a.tagName) && a.value) return; const y=window.scrollY; route(); window.scrollTo(0,y); }
+function friendlyErr(e){ const m=(e&&(e.message||e.error_description||e.msg))||String(e||'');
+  if(/fetch|network|Load failed|NetworkError/i.test(m)) return "You're offline. Try again when you have a connection.";
+  if(/Invalid login/i.test(m)) return 'That email or password is wrong.';
+  if(/already registered|already been registered|already exists/i.test(m)) return 'That email already has an account. Sign in instead.';
+  if(/profiles_username_key|duplicate key.*username/i.test(m)) return 'That username was just taken. Pick another.';
+  if(/rate limit|too many/i.test(m)) return 'Too many tries. Wait a minute and try again.';
+  if(/Password should be/i.test(m)) return 'Use a longer password: at least 8 characters.';
+  return m||'Something went wrong. Try again.'; }
+async function cloudInit(){
+  if(!sb) return;
+  try{ const {data}=await sb.auth.getSession(); CL.user=data&&data.session?data.session.user:null; }catch(e){}
+  sb.auth.onAuthStateChange((ev,session)=>{ const nu=session?session.user:null; const changed=(nu&&nu.id)!==uid(); CL.user=nu;
+    if(!changed || UI.authBusy) return;
+    if(nu) setTimeout(()=>cloudLoad(true),0); else { Object.assign(CL,{profile:null,friends:[],incoming:[],outgoing:[],acts:[],chals:[],loaded:false}); rerender(); } });
+  if(CL.user) await cloudLoad(true);
+}
+async function cloudLoad(force){
+  if(!sb||!CL.user||CL.loading) return; if(!force && Date.now()-CL.lastLoad<20000) return;
+  CL.loading=true; CL.lastLoad=Date.now();
+  try{
+    const me=uid();
+    const {data:prof,error:pe}=await sb.from('profiles').select('id,username,display_name,level,created_at').eq('id',me).maybeSingle(); if(pe) throw pe;
+    CL.profile=prof||null;
+    if(prof){
+      const {data:fr,error:fe}=await sb.from('friendships').select('requester,addressee,status,created_at'); if(fe) throw fe;
+      const ids=[...new Set(fr.flatMap(f=>[f.requester,f.addressee]).filter(x=>x!==me))];
+      const since=new Date(Date.now()-14*864e5).toISOString();
+      const [pp,aa,cc]=await Promise.all([
+        ids.length?sb.from('profiles').select('id,username,display_name').in('id',ids):Promise.resolve({data:[]}),
+        sb.from('activities').select('id,user_id,kind,title,minutes,created_at').gte('created_at',since).order('created_at',{ascending:false}).limit(150),
+        sb.from('challenges').select('id,owner,name,metric,rule,target,days,start_date,stake,created_at,challenge_members(user_id,score)').order('created_at',{ascending:false}).limit(60)]);
+      [pp,aa,cc].forEach(r=>{ if(r.error) throw r.error; });
+      CL.people={[me]:prof}; (pp.data||[]).forEach(p=>CL.people[p.id]=p);
+      CL.friends=fr.filter(f=>f.status==='accepted').map(f=>f.requester===me?f.addressee:f.requester);
+      CL.incoming=fr.filter(f=>f.status==='pending'&&f.addressee===me).map(f=>f.requester);
+      CL.outgoing=fr.filter(f=>f.status==='pending'&&f.requester===me).map(f=>f.addressee);
+      CL.acts=aa.data||[]; CL.chals=(cc.data||[]).map(chalFromRow);
+      const miss=[...new Set(CL.chals.flatMap(c=>[c.owner,...c.members.map(m=>m.id)]).filter(id=>!CL.people[id]))];
+      if(miss.length){ const r=await sb.from('profiles').select('id,username,display_name').in('id',miss); (r.data||[]).forEach(p=>CL.people[p.id]=p); }
+      await restoreIfNeeded(); syncScores();
+    }
+    CL.loaded=true; CL.offline=false;
+  }catch(e){ CL.offline=true; }
+  CL.loading=false; rerender(['friends','progress','today']);
+}
+function chalFromRow(r){ const rule=r.rule||{}; const c={id:r.id,cloud:true,owner:r.owner,name:r.name,metric:r.metric,start:r.start_date,end:iso(addDays(fromIso(r.start_date),r.days-1)),stake:r.stake||'',members:(r.challenge_members||[]).map(m=>({id:m.user_id,score:m.score}))};
+  if(r.target) c.target=r.target; ['wid','moves','lv','fmt'].forEach(k=>{ if(rule[k]!=null) c[k]=rule[k]; }); c.joined=c.members.some(m=>m.id===uid()); return c; }
+async function syncScores(){ if(!signedIn()) return; const me=uid();
+  for(const c of CL.chals.filter(c=>c.joined)){ const sc=myScore(c); const m=c.members.find(x=>x.id===me); if(!m||m.score===sc) continue; m.score=sc;
+    try{ await sb.from('challenge_members').update({score:sc,updated_at:new Date().toISOString()}).eq('challenge_id',c.id).eq('user_id',me); }catch(e){} } }
+async function postActivity(title,minutes,kind){ if(!signedIn()) return; const row={user_id:uid(),kind:kind||'workout',title:title.slice(0,120),minutes:minutes==null?null:Math.min(600,minutes)};
+  CL.acts.unshift({...row,id:'local'+Date.now(),created_at:new Date().toISOString()});
+  try{ await sb.from('activities').insert(row); }catch(e){} }
+let bkTimer=null;
+function queueBackup(){ if(!signedIn()) return; clearTimeout(bkTimer); bkTimer=setTimeout(doBackup,3000); }
+async function doBackup(){ if(!signedIn()) return; const data={...S}; delete data.lastUpdateCheck; delete data.restoredFor; delete data.meal; // meal inputs (age, weight, allergies) stay on the phone
+  try{ const {error}=await sb.from('backups').upsert({user_id:uid(),data,updated_at:new Date().toISOString()},{onConflict:'user_id'}); if(!error){ S.lastBackup=Date.now(); try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} rerender(['progress']); } }catch(e){} }
+async function restoreIfNeeded(){
+  if(S.restoredFor===uid()) return;
+  const {data,error}=await sb.from('backups').select('data').eq('user_id',uid()).maybeSingle(); if(error) return;
+  let added=0;
+  if(data&&data.data){ const B=data.data; const fresh=!S.history.length;
+    const key=h=>[h.d,h.id,h.min,h.secs||0].join('|'); const have=new Set(S.history.map(key));
+    const add=(B.history||[]).filter(h=>!have.has(key(h))); added=add.length;
+    S.history=S.history.concat(add).sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0);
+    S.saved=[...new Set([...(S.saved||[]),...(B.saved||[])])];
+    S.enrolled=Object.assign({},B.enrolled||{},S.enrolled||{});
+    const cids=new Set(S.contests.map(c=>c.id)); S.contests=S.contests.concat((B.contests||[]).filter(c=>!cids.has(c.id)));
+    if(fresh){ if(B.prefs) S.prefs=B.prefs; if(B.profile) S.profile=B.profile; if(B.invites) S.invites=B.invites; if(B.feed) S.feed=B.feed; }
+  }
+  if(!S.profile && CL.profile) S.profile={name:CL.profile.display_name||CL.profile.username,created:iso(TODAY)};
+  S.restoredFor=uid(); save();
+  if(added) toast(`Restored ${added} workout${added===1?'':'s'} from your account`);
+}
+function authPanel(mode){
+  const up=mode!=='signin';
+  return `<form class="panel stack" data-form="auth" data-mode="${up?'signup':'signin'}" novalidate>
+    <div><h2>${up?'Create your free account':'Sign in to BellForge'}</h2>
+    <p class="small muted" style="margin-top:4px">${up?'Get a username so friends can add you, compete on real leaderboards and see each other\'s workouts. Your training history is backed up too.':'Use the email and password you signed up with. Your workouts come back automatically.'}</p></div>
+    ${up?`<label class="f">Username<input id="au-user" type="text" maxlength="20" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="e.g. mike_swings" value="${esc(UI.authUser||'')}"><span class="small muted" style="font-weight:400;text-transform:none;letter-spacing:0">3–20 characters: lowercase letters, numbers and _</span></label>`:''}
+    <label class="f">Email<input id="au-email" type="email" autocapitalize="none" autocorrect="off" autocomplete="email" value="${esc(UI.authEmail||'')}"></label>
+    <label class="f">Password<input id="au-pass" type="password" autocomplete="${up?'new-password':'current-password'}" placeholder="${up?'At least 8 characters':''}"></label>
+    ${UI.authErr?`<p class="err" role="alert">${esc(UI.authErr)}</p>`:''}
+    <button class="btn pri" type="submit" ${UI.authBusy?'disabled':''}>${UI.authBusy?'One moment…':up?'Create account':'Sign in'}</button>
+    <button type="button" class="btn ghost sm" data-act="authmode" data-m="${up?'signin':'signup'}" style="align-self:flex-start;padding-left:0">${up?'Already have an account? Sign in':'New here? Create an account'}</button>
+    ${up?'<p class="small muted">By creating an account you agree to the <a href="https://quant-design-llc.github.io/bellforge/terms/" target="_blank" rel="noopener">Terms</a> and <a href="https://quant-design-llc.github.io/bellforge/privacy/" target="_blank" rel="noopener">Privacy Policy</a>.</p>':''}
+  </form>`;
+}
+function authFail(msg){ UI.authBusy=false; UI.authErr=msg; route(); }
+async function doAuth(mode){
+  if(!sb) return authFail('Accounts are not available right now. Try updating the app.');
+  const email=$('#au-email').value.trim(), pass=$('#au-pass').value; const u=mode==='signup'?$('#au-user').value.trim().replace(/^@/,'').toLowerCase():'';
+  UI.authEmail=email; UI.authUser=u;
+  if(!/^\S+@\S+\.\S+$/.test(email)) return authFail('Enter a valid email address.');
+  if(mode==='signup'){ if(!/^[a-z0-9_]{3,20}$/.test(u)) return authFail('Usernames are 3–20 characters: lowercase letters, numbers and _.'); if(pass.length<8) return authFail('Use at least 8 characters for your password.'); }
+  else if(!pass) return authFail('Enter your password.');
+  UI.authBusy=true; UI.authErr=''; route();
+  try{
+    if(mode==='signup'){
+      const {data:ok,error:ue}=await sb.rpc('username_available',{u}); if(ue) throw ue; if(!ok) return authFail(`@${u} is taken. Try another username.`);
+      const {data,error}=await sb.auth.signUp({email,password:pass}); if(error) throw error;
+      if(!data.session) return authFail('Your account was created. Confirm it from the email we sent, then sign in.');
+      CL.user=data.session.user;
+      const {error:pe}=await sb.from('profiles').insert({id:CL.user.id,username:u,display_name:((S.profile&&S.profile.name)||u).slice(0,30),level:S.prefs.level||1});
+      if(pe){ UI.authBusy=false; CL.profile=null; CL.loaded=true; route(); return toast(friendlyErr(pe)); }
+      S.restoredFor=CL.user.id;
+      UI.authBusy=false; UI.authErr=''; UI.authUser=''; await cloudLoad(true); doBackup(); toast(`Welcome, @${u}. Your account is ready.`);
+    } else {
+      const {data,error}=await sb.auth.signInWithPassword({email,password:pass}); if(error) throw error;
+      CL.user=data.user; UI.authBusy=false; UI.authErr=''; await cloudLoad(true); toast('Signed in');
+    }
+  }catch(e){ authFail(friendlyErr(e)); }
+}
+async function addFriend(raw){
+  const name=raw.trim().replace(/^@/,'').toLowerCase();
+  if(!/^[a-z0-9_]{3,20}$/.test(name)) return toast('Enter a username, like mike_swings');
+  if(name===CL.profile.username) return toast("That's your own username");
+  const {data:p,error}=await sb.from('profiles').select('id,username,display_name').eq('username',name).maybeSingle();
+  if(error) return toast(friendlyErr(error)); if(!p) return toast(`No one has the username @${name} yet`);
+  CL.people[p.id]=p;
+  if(CL.friends.includes(p.id)) return toast(`You're already friends with @${name}`);
+  if(CL.incoming.includes(p.id)) return acceptFriend(p.id);
+  if(CL.outgoing.includes(p.id)) return toast(`You already sent @${name} a request`);
+  const {error:e2}=await sb.from('friendships').insert({requester:uid(),addressee:p.id});
+  if(e2) return toast(/duplicate/i.test(e2.message||'')?`You and @${name} already have a request open`:friendlyErr(e2));
+  CL.outgoing.push(p.id); UI.addFriend=''; route(); toast(`Friend request sent to @${name}`);
+}
+async function acceptFriend(id){ const {error}=await sb.from('friendships').update({status:'accepted'}).eq('requester',id).eq('addressee',uid()); if(error) return toast(friendlyErr(error));
+  CL.incoming=CL.incoming.filter(x=>x!==id); CL.friends.push(id); route(); toast(`You and ${pname(id)} are now friends`); cloudLoad(true); }
+async function dropFriend(id,msg){ const me=uid(); const {error}=await sb.from('friendships').delete().or(`and(requester.eq.${me},addressee.eq.${id}),and(requester.eq.${id},addressee.eq.${me})`); if(error) return toast(friendlyErr(error));
+  CL.incoming=CL.incoming.filter(x=>x!==id); CL.outgoing=CL.outgoing.filter(x=>x!==id); CL.friends=CL.friends.filter(x=>x!==id); route(); toast(msg); }
+async function createCloudChallenge(c){
+  const rule={}; ['wid','moves','lv','fmt'].forEach(k=>{ if(c[k]!=null) rule[k]=c[k]; });
+  const {data,error}=await sb.from('challenges').insert({owner:uid(),name:c.name,metric:c.metric,rule,target:c.target||null,days:contestDays(c).len,start_date:c.start,stake:c.stake||null}).select('id,owner,name,metric,rule,target,days,start_date,stake,created_at').single();
+  if(error) throw error;
+  const {error:me}=await sb.from('challenge_members').insert({challenge_id:data.id,user_id:uid(),score:0}); if(me) throw me;
+  CL.chals.unshift(chalFromRow({...data,challenge_members:[{user_id:uid(),score:0}]})); syncScores(); postActivity(`Started the ${c.name} challenge`,null,'challenge');
+}
+async function joinCloud(id){ const c=CL.chals.find(x=>x.id===id); if(!c) return;
+  const {error}=await sb.from('challenge_members').insert({challenge_id:id,user_id:uid(),score:0}); if(error) return toast(friendlyErr(error));
+  c.joined=true; c.members.push({id:uid(),score:0}); syncScores(); postActivity(`Joined the ${c.name} challenge`,null,'challenge'); route(); toast(`You're in. Good luck in ${c.name}!`); cloudLoad(true); }
+async function leaveCloud(id){ const c=CL.chals.find(x=>x.id===id); if(!c) return; const me=uid();
+  const alone=c.owner===me && c.members.every(m=>m.id===me);
+  const q= alone? sb.from('challenges').delete().eq('id',id) : sb.from('challenge_members').delete().eq('challenge_id',id).eq('user_id',me);
+  const {error}=await q; if(error) return toast(friendlyErr(error));
+  if(alone) CL.chals=CL.chals.filter(x=>x.id!==id); else { c.joined=false; c.members=c.members.filter(m=>m.id!==me); }
+  route(); toast(alone?'Challenge deleted':'You left the challenge'); }
+function thisWeekCount(id){ const m=monday(TODAY).getTime(); return CL.acts.filter(a=>a.user_id===id&&a.kind==='workout'&&new Date(a.created_at).getTime()>=m).length; }
+function lastSeen(id){ const a=CL.acts.find(a=>a.user_id===id&&a.kind==='workout'); if(!a) return 'No workouts in the last 2 weeks'; const d=Math.floor((Date.now()-new Date(a.created_at))/864e5); return 'Last workout '+(d<1?'today':d===1?'yesterday':d+' days ago'); }
+function agoTxt(t){ const s=(Date.now()-new Date(t))/1000; if(s<90) return 'just now'; if(s<3600) return Math.round(s/60)+' min ago'; if(s<86400) return Math.round(s/3600)+' h ago'; const d=Math.round(s/86400); return d===1?'yesterday':d+' days ago'; }
+function avatar(id,size){ const n=pname(id)==='You'?(CL.profile&&(CL.profile.display_name||CL.profile.username))||'Me':pname(id); return `<span class="av av-sm" style="width:${size||36}px;height:${size||36}px">${esc(initials(n.replace('@','')))}</span>`; }
+window.addEventListener('focus',()=>cloudLoad(false));
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') cloudLoad(false); });
 
 /* ---------- First-time setup ---------- */
 UI.setup={name:'',level:1,goal:3,bell:true};
@@ -885,8 +1064,10 @@ function vSetup(){
       <button type="button" class="opt" data-act="su" data-k="bell" data-v="1" aria-pressed="${U.bell}">Yes<span>Show me kettlebell workouts</span></button>
       <button type="button" class="opt" data-act="su" data-k="bell" data-v="0" aria-pressed="${!U.bell}">Not yet<span>Start with bodyweight workouts</span></button></div></div>
     <button class="btn pri" type="submit" style="padding:14px;font-size:16px">Start training</button>
+    ${sb?'<button type="button" class="btn ghost" data-act="setupsignin">Already have an account? Sign in</button>':''}
   </form>`;
 }
+function vSetupSignin(){ return `<div class="setup stack" style="gap:16px">${authPanel('signin')}<button type="button" class="btn ghost" data-act="setupback">Back to setup</button></div>`; }
 
 /* ---------- Today ---------- */
 function greet(){ const h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':'Good evening'; }
@@ -1081,7 +1262,8 @@ function finish(){
   const done=S.history.filter(h=>!h.sample).length;
   const askReview = done>=3 && !S.reviewAsked;
   if(askReview) S.reviewAsked=true;
-  save(); route(); toast('Session logged. Your streak and contests are updated.');
+  save(); route(); toast('Session logged. Your streak and challenges are updated.');
+  if(signedIn()){ postActivity(`Finished ${T.title}`,min,'workout'); syncScores(); }
   if(askReview) setTimeout(()=>{ try{ const P=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.InAppReview; if(P&&P.requestReview) P.requestReview().catch(()=>{}); }catch(e){} },1800);
 }
 function vTimer(){
@@ -1233,31 +1415,59 @@ function leaderboard(c,max){
       <b class="num">${x.score}${c.target&&!team?'<span class="muted small">/'+c.target+'</span>':''}</b></div>`; }).join('')}</div>`;
 }
 function ruleText(t){ return `${t.days} days · ${metricName(t)}`; }
+function challengeCard(c){
+  const cd=contestDays(c); const sc=myScore(c); const ended=cd.left===0&&cd.el>=cd.len;
+  let board='';
+  if(c.cloud){ const rows=c.members.map(m=>({id:m.id,score:m.id===uid()?sc:m.score})).sort((a,b)=>b.score-a.score);
+    board=`<div style="margin-top:10px">${rows.map((r,i)=>`<div class="lb ${r.id===uid()?'me':''}"><span class="num muted">${i+1}</span><span>${esc(pname(r.id))} <span class="handle">${r.id===uid()?'':esc(phandle(r.id))}</span></span><b class="num">${r.score}${unit(c)?' '+unit(c):''}${c.target?` <span class="muted small" style="font-weight:400">/ ${c.target}</span>`:''}</b></div>`).join('')}</div>`; }
+  return `<div class="panel">
+    <div class="row between"><h3>${esc(c.name)}</h3><span class="chip">${ended?'Finished':cd.left+' of '+cd.len+' days left'}</span></div>
+    <p class="small muted" style="margin:4px 0 6px">${esc(metricName(c))}${c.cloud?` · ${c.members.length} ${c.members.length===1?'person':'people'}`:' · just you'}${c.stake?` · Stakes: ${esc(c.stake)}`:''}</p>
+    ${c.cloud?board:(c.target?`<div class="row between small"><b class="num">${sc} / ${c.target}${unit(c)?' '+unit(c):''}</b><span class="muted">${sc>=c.target?'Goal hit':Math.round(sc/c.target*100)+'%'}</span></div><div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,sc/c.target*100)}%"></i></div>`
+      :`<div class="row between small"><span>Your score</span><b class="num">${sc}${unit(c)?' '+unit(c):''}</b></div><div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,cd.el/cd.len*100)}%"></i></div>`)}
+    <div class="row" style="margin-top:10px">${c.cloud&&!ended?`<button class="btn sm" data-act="invite" data-c="${esc(c.name)}">Invite friends</button>`:''}${c.cloud?`<button class="btn ghost sm" data-act="cleave" data-id="${c.id}">${c.owner===uid()&&c.members.every(m=>m.id===uid())?'Delete':'Leave'}</button>`:`<button class="btn ghost sm" data-act="cquit" data-id="${c.id}">Remove</button>`}</div>
+  </div>`;
+}
 function vFriends(){
   const st=streak(); const wk=weekDays(); const weekCount=sessionsBetween(iso(wk[0]),iso(wk[6])).length;
   const D=UI.contestDraft||{name:'',metric:'sessions',days:7,stake:''};
   const cat=UI.tcat||'All'; const tpls=TEMPLATES.filter(t=>cat==='All'||t.cat===cat);
-  const feed=S.feed.slice(0,8).map(f=>({txt:f.txt,when:new Date(f.t).toLocaleDateString('en-US',{month:'short',day:'numeric'})}));
+  const on=signedIn(); const me=uid();
+  const mine=[...(on?CL.chals.filter(c=>c.joined):[]),...S.contests];
+  const open=on?CL.chals.filter(c=>!c.joined&&contestDays(c).left>0&&c.owner!==me):[];
+  const localFeed=S.feed.slice(0,8).map(f=>`<div><span>${esc(f.txt)}</span><span class="muted small" style="white-space:nowrap">${new Date(f.t).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span></div>`).join('');
+  const cloudFeed=CL.acts.slice(0,25).map(a=>`<div><span><b>${esc(pname(a.user_id))}</b> ${esc(a.title.replace(/^(Finished|Started|Joined)/,m=>m.toLowerCase()))}${a.minutes?` · ${a.minutes} min`:''}</span><span class="muted small" style="white-space:nowrap">${agoTxt(a.created_at)}</span></div>`).join('');
+  let account='';
+  if(!sb) account='';
+  else if(!CL.user) account=`<div style="margin-bottom:16px">${authPanel(UI.authMode||'signup')}</div>`;
+  else if(!CL.loaded) account=`<div class="panel" style="margin-bottom:16px"><p class="muted">${CL.offline?"You're offline. Friends will load when you reconnect.":'Loading your friends…'}</p></div>`;
+  else if(!CL.profile) account=`<form class="panel stack" data-form="username" style="margin-bottom:16px"><h2>Pick your username</h2><p class="small muted">Friends add you by this name.</p><label class="f">Username<input id="un" type="text" maxlength="20" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="e.g. mike_swings"></label><button class="btn pri" type="submit">Save username</button></form>`;
+  const hero=`<div class="hero" style="margin-bottom:16px"><div><h2>Invite friends to BellForge</h2><p style="margin-top:4px">${on?'Send them the app and your username so they can add you.':'Send a download link by text, WhatsApp, email or social media.'}</p>${on?`<span class="uname">@${esc(CL.profile.username)} <button class="btn ghost sm" data-act="copy" data-text="@${esc(CL.profile.username)}" aria-label="Copy your username">Copy</button></span>`:''}</div><button class="btn" data-act="invite">Invite friends</button></div>`;
+  const friendsPanel= on?`<div class="grid g2" style="margin-bottom:16px">
+    <div class="panel">
+      <div class="row between"><h2>Friends <span class="muted">(${CL.friends.length})</span></h2>${CL.loading?'<span class="small muted">Updating…</span>':`<button class="btn ghost sm" data-act="refresh">Refresh</button>`}</div>
+      <form class="row" data-form="addfriend" style="gap:8px;margin:10px 0 4px;flex-wrap:nowrap"><input id="af" type="text" maxlength="21" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Add by username, e.g. sarah_kb" aria-label="Friend's username" style="flex:1;min-width:0" value="${esc(UI.addFriend||'')}"><button class="btn pri" type="submit">Add</button></form>
+      ${CL.incoming.map(id=>`<div class="person">${avatar(id)}<div class="who"><b>${esc(pname(id))}</b><span class="handle">${esc(phandle(id))} wants to be friends</span></div><button class="btn pri sm" data-act="faccept" data-id="${id}">Accept</button><button class="btn ghost sm" data-act="fdecline" data-id="${id}" aria-label="Decline">✕</button></div>`).join('')}
+      ${CL.friends.map(id=>`<div class="person">${avatar(id)}<div class="who"><b>${esc(pname(id))}</b><span class="handle">${esc(phandle(id))}</span><span class="small muted" style="display:block">${thisWeekCount(id)} this week · ${lastSeen(id)}</span></div><button class="btn ghost sm" data-act="fremove" data-id="${id}" aria-label="Remove friend">Remove</button></div>`).join('')}
+      ${CL.outgoing.map(id=>`<div class="person">${avatar(id)}<div class="who"><b>${esc(pname(id))}</b><span class="handle">${esc(phandle(id))} · request sent</span></div><button class="btn ghost sm" data-act="fcancel" data-id="${id}">Cancel</button></div>`).join('')}
+      ${!CL.friends.length&&!CL.incoming.length&&!CL.outgoing.length?'<p class="small muted" style="padding:8px 0">No friends yet. Invite someone, then add them by their username once they sign up.</p>':''}
+    </div>
+    <div class="panel"><h2>Friend activity</h2><div class="feed" style="margin-top:8px">${cloudFeed||'<p class="small muted" style="padding:8px 0">When you and your friends finish workouts or join challenges, it shows up here.</p>'}</div></div>
+  </div>`:'';
   return `
   <div class="head"><div><h1>Friends &amp; challenges</h1><p class="sub">Invite friends, pick a challenge and keep each other going.</p></div></div>
-  <div class="hero" style="margin-bottom:16px"><div><h2>Invite friends to BellForge</h2><p style="margin-top:4px">Send a download link by text, WhatsApp, email or social media. ${S.invites?`You've shared ${S.invites} invite${S.invites===1?'':'s'}.`:''}</p></div><button class="btn" data-act="invite">Invite friends</button></div>
-  <div class="grid g4" style="margin-bottom:16px">
+  ${hero}
+  ${account}
+  ${on?'':`<div class="grid g4" style="margin-bottom:16px">
     <div class="panel tile"><div class="k">Your streak</div><div class="v num">${st}<small> days</small></div></div>
     <div class="panel tile"><div class="k">This week</div><div class="v num">${weekCount}<small> of ${S.prefs.goal}</small></div></div>
     <div class="panel tile"><div class="k">Active challenges</div><div class="v num">${S.contests.length}</div></div>
-    <div class="panel tile"><div class="k">Invites shared</div><div class="v num">${S.invites||0}</div></div>
-  </div>
-  <div class="note" style="margin-bottom:16px"><b>Usernames</b><span>Accounts with usernames are coming soon. Then you'll add friends by username or invite link and see each other on real leaderboards. For now, challenges track your own progress.</span></div>
+    <div class="panel tile"><div class="k">Invites shared</div><div class="v num">${S.invites||0}</div></div></div>`}
+  ${friendsPanel}
+  ${open.length?`<h2 style="margin:4px 0 10px">Join a friend's challenge</h2><div class="grid g2" style="margin-bottom:16px">${open.map(c=>{ const cd=contestDays(c); return `<div class="panel"><div class="row between"><h3>${esc(c.name)}</h3><span class="chip">${cd.left} days left</span></div><p class="small muted" style="margin:4px 0 10px">Started by ${esc(pname(c.owner))} · ${esc(metricName(c))}${c.stake?` · Stakes: ${esc(c.stake)}`:''}</p><button class="btn pri sm" data-act="cjoin" data-id="${c.id}">Join challenge</button></div>`; }).join('')}</div>`:''}
   <h2 style="margin:4px 0 10px">Your challenges</h2>
   <div class="grid g2" style="margin-bottom:16px">
-    ${S.contests.length?'':'<div class="empty">No challenges yet. Pick one from the library below. Goal challenges like Show-Up Week work solo, so you can start today.</div>'}
-    ${S.contests.map(c=>{ const cd=contestDays(c); const sc=scoreFor(c,'me'); return `<div class="panel">
-      <div class="row between"><h3>${esc(c.name)}</h3><span class="chip">${cd.left} of ${cd.len} days left</span></div>
-      <p class="small muted" style="margin:4px 0 10px">${esc(metricName(c))}</p>
-      ${c.target?`<div class="row between small"><b class="num">${sc} / ${c.target}${unit(c)?' '+unit(c):''}</b><span class="muted">${sc>=c.target?'Goal hit':Math.round(sc/c.target*100)+'%'}</span></div><div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,sc/c.target*100)}%"></i></div>`
-        :`<div class="row between small"><span>Your score</span><b class="num">${sc}${unit(c)?' '+unit(c):''}</b></div><div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,cd.el/cd.len*100)}%"></i></div><p class="small muted" style="margin-top:4px">Day ${cd.el} of ${cd.len}</p>`}
-      <div class="row" style="margin-top:10px"><button class="btn sm" data-act="invite" data-c="${esc(c.name)}">Invite friends to this</button><button class="btn ghost sm" data-act="cquit" data-id="${c.id}">Leave</button></div>
-    </div>`; }).join('')}
+    ${mine.length?mine.map(challengeCard).join(''):`<div class="empty">No challenges yet. Pick one from the library below.${on?' Your friends can see it and join.':' Goal challenges like Show-Up Week work solo, so you can start today.'}</div>`}
   </div>
   <div class="panel" style="margin-bottom:16px">
     <div class="row between" style="margin-bottom:12px"><h2>Challenge library <span class="muted">(${TEMPLATES.length})</span></h2>
@@ -1280,10 +1490,11 @@ function vFriends(){
         <label class="f" style="flex:1 1 100px">Goal (optional)<input type="number" id="ct" min="1" max="100000" placeholder="None"></label>
       </div>`}
       <label class="f">Stakes (optional)<input type="text" id="cs" maxlength="60" placeholder="e.g. Loser picks next month's workout" value="${esc(D.stake||'')}"></label>
+      ${on?'<p class="small muted">Your friends will see this challenge and can join it.</p>':''}
       <button class="btn pri" type="submit">Start challenge</button>
     </form>
     <div class="panel">
-      <h2>Activity</h2><div class="feed" style="margin-top:8px">${feed.length?feed.map(f=>`<div><span>${esc(f.txt)}</span><span class="muted small" style="white-space:nowrap">${f.when}</span></div>`).join(''):'<p class="small muted" style="padding:8px 0">Your finished workouts, challenges and invites will show here.</p>'}</div>
+      <h2>${on?'Your recent activity':'Activity'}</h2><div class="feed" style="margin-top:8px">${localFeed||'<p class="small muted" style="padding:8px 0">Your finished workouts, challenges and invites will show here.</p>'}</div>
     </div>
   </div>`;
 }
@@ -1348,6 +1559,7 @@ function vProgress(){
   <div class="panel" style="margin-bottom:16px"><h3>Recent workouts</h3>
     ${recent.length?`<table class="tbl" style="margin-top:8px"><thead><tr><th>Date</th><th>Workout</th><th style="text-align:right">Time</th><th style="text-align:right">Result</th></tr></thead><tbody>${recent.map(h=>`<tr><td class="num" style="white-space:nowrap">${fromIso(h.d).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</td><td>${esc(h.name||(W(h.id)?W(h.id).name:'Workout'))}</td><td class="n">${h.min} min</td><td class="n">${h.rounds?h.rounds+' rounds':'–'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty" style="margin-top:8px">No workouts yet. Your history will show here.</div>'}
   </div>
+  ${accountPanel()}
   <form class="panel stack" data-form="profile">
     <h3>Your settings</h3>
     <div class="row" style="gap:10px;align-items:flex-end">
@@ -1359,6 +1571,18 @@ function vProgress(){
     </div>
   </form>
   <div style="margin-top:16px">${gearPanel()}</div>`;
+}
+function accountPanel(){
+  if(!sb) return '';
+  if(!signedIn()) return `<div class="panel" style="margin-bottom:16px"><div class="row between"><div><h3>Back up your training</h3><p class="small muted" style="margin-top:2px">Create a free account so a new phone never wipes your history, and so friends can find you.</p></div><button class="btn pri" data-act="nav" data-v="friends">${CL.user?'Finish setup':'Create account'}</button></div></div>`;
+  const bk=S.lastBackup?`Backed up ${agoTxt(S.lastBackup)}`:'Backing up…';
+  return `<div class="panel stack" style="margin-bottom:16px">
+    <div class="row between"><div><h3>Your account</h3><p class="small muted" style="margin-top:2px"><b class="handle" style="font-size:14px">@${esc(CL.profile.username)}</b> · ${esc(CL.user.email||'')} · ${bk}</p></div>
+      <div class="row"><button class="btn sm" data-act="signout">Sign out</button></div></div>
+    ${UI.confirmDelete?`<div class="note" style="border-left-color:var(--bad)"><span><b>Delete your account?</b> This permanently removes your username, friends, challenges, shared activity and cloud backup. Workouts saved on this phone stay here.</span></div>
+      <div class="row"><button class="btn sm" style="background:var(--bad);border-color:var(--bad);color:#fff" data-act="delacct2">Yes, delete my account</button><button class="btn ghost sm" data-act="delcancel">Keep my account</button></div>`
+      :`<button class="btn ghost sm" data-act="delacct" style="align-self:flex-start;padding-left:0;color:var(--bad)">Delete account</button>`}
+  </div>`;
 }
 function wireCharts(root){
   root.querySelectorAll('.chart').forEach(ch=>{ const tip=ch.querySelector('.tip'); if(!tip) return;
@@ -1602,8 +1826,23 @@ const ACT={
     try{ if(i.immediateUpdateAllowed) await AU.performImmediateUpdate(); else await AU.openAppStore(); }catch(e){ try{ await AU.openAppStore(); }catch(_){} } },
   laterupdate:()=>{ const b=$('#updbar'); if(b) b.remove(); },
   hasbell:()=>{ S.prefs.hasBell=true; save(); route(); toast('Kettlebell workouts are back on your Today screen'); },
-  invite:b=>{ const c=b.dataset.c; shareText(`${c?`Join my "${c}" challenge on BellForge! `:''}I'm training with BellForge: kettlebell workouts with muscle maps, classic workouts and challenges. Get it here:`,'Invite friends to BellForge',()=>{ S.invites=(S.invites||0)+1; S.feed.unshift({t:Date.now(),txt:'You shared an invite'}); save(); route(); }); },
-  shareworkout:()=>{ const h=S.history[S.history.length-1]; if(!h) return; shareText(`I just finished ${h.name||'a workout'} on BellForge${h.rounds?`: ${h.rounds} rounds`:h.secs?` in ${mmssLong(h.secs)}`:''}. ${streak()>1?`${streak()}-day streak. `:''}Train with me:`,'Share your workout'); },
+  invite:b=>{ const c=b.dataset.c; const me=signedIn()?` Add me: @${CL.profile.username}.`:''; shareText(`${c?`Join my "${c}" challenge on BellForge!`:"I'm training with BellForge: kettlebell workouts with muscle maps, classic workouts and challenges."}${me} Get it here:`,'Invite friends to BellForge',()=>{ S.invites=(S.invites||0)+1; S.feed.unshift({t:Date.now(),txt:'You shared an invite'}); save(); route(); }); },
+  shareworkout:()=>{ const h=S.history[S.history.length-1]; if(!h) return; shareText(`I just finished ${h.name||'a workout'} on BellForge${h.rounds?`: ${h.rounds} rounds`:h.secs?` in ${mmssLong(h.secs)}`:''}. ${streak()>1?`${streak()}-day streak. `:''}${signedIn()?`Add me: @${CL.profile.username}. `:''}Train with me:`,'Share your workout'); },
+  setupsignin:()=>{ UI.setupSignin=true; UI.authErr=''; route(); },
+  setupback:()=>{ UI.setupSignin=false; UI.authErr=''; route(); },
+  authmode:b=>{ UI.authMode=b.dataset.m; UI.authErr=''; route(); },
+  refresh:()=>cloudLoad(true),
+  faccept:b=>acceptFriend(b.dataset.id),
+  fdecline:b=>dropFriend(b.dataset.id,'Request declined'),
+  fcancel:b=>dropFriend(b.dataset.id,'Request cancelled'),
+  fremove:b=>{ if(UI.confirmRemove===b.dataset.id){ UI.confirmRemove=null; dropFriend(b.dataset.id,'Friend removed'); } else { UI.confirmRemove=b.dataset.id; b.textContent='Tap to confirm'; } },
+  cjoin:b=>joinCloud(b.dataset.id),
+  cleave:b=>leaveCloud(b.dataset.id),
+  signout:async()=>{ try{ await doBackup(); await sb.auth.signOut(); }catch(e){} Object.assign(CL,{user:null,profile:null,friends:[],incoming:[],outgoing:[],acts:[],chals:[],loaded:false}); route(); toast('Signed out. Your workouts stay on this phone.'); },
+  delacct:()=>{ UI.confirmDelete=true; route(); },
+  delcancel:()=>{ UI.confirmDelete=false; route(); },
+  delacct2:async()=>{ const {error}=await sb.rpc('delete_my_account'); if(error) return toast(friendlyErr(error));
+    try{ await sb.auth.signOut({scope:'local'}); }catch(e){} Object.assign(CL,{user:null,profile:null,friends:[],incoming:[],outgoing:[],acts:[],chals:[],loaded:false}); delete S.restoredFor; delete S.lastBackup; UI.confirmDelete=false; save(); route(); toast('Your account was deleted. Workouts on this phone are still here.'); },
   cquit:b=>{ S.contests=S.contests.filter(c=>c.id!==b.dataset.id); save(); route(); toast('Challenge removed'); },
   tcat:b=>{ UI.tcat=b.dataset.c; route(); const el=document.querySelector('.tgrid'); if(el) el.closest('.panel').scrollIntoView(); },
   tpl:b=>{ const t=TEMPLATES[+b.dataset.i]; UI.contestDraft={...t,tpl:true,wid:t.wid==='pick'?todaysPick().id:t.wid,stake:''}; route(); const f=$('#cform'); if(f){ f.scrollIntoView({behavior:REDUCE?'auto':'smooth'}); } },
@@ -1647,16 +1886,24 @@ document.addEventListener('submit',e=>{
     else { const days=+$('#cd').value, metric=$('#cm').value, tg=+$('#ct').value;
       c={id:'c'+Date.now(),name,metric,start:iso(TODAY),end:iso(addDays(TODAY,days-1)),members,stake:$('#cs').value.trim(),code};
       if(tg>0) c.target=tg; if(metric==='workout' && D.wid) c.wid=D.wid; }
-    S.contests.unshift(c); S.feed.unshift({t:Date.now(),txt:`You started ${name}`}); UI.contestDraft=null; UI.lastInvite=null; save(); route(); toast('Challenge started. Invite friends to join you.'); }
+    S.feed.unshift({t:Date.now(),txt:`You started ${name}`}); UI.contestDraft=null; UI.lastInvite=null;
+    if(signedIn()){ createCloudChallenge(c).then(()=>{ save(); route(); toast('Challenge started. Your friends can join it now.'); }).catch(err=>{ S.contests.unshift(c); save(); route(); toast(friendlyErr(err)+' Saved on this phone instead.'); }); return; }
+    S.contests.unshift(c); save(); route(); toast('Challenge started. Create an account so friends can join you.'); }
+  if(f==='auth'){ doAuth(e.target.dataset.mode); return; }
+  if(f==='addfriend'){ const v=$('#af').value; UI.addFriend=v; addFriend(v); return; }
+  if(f==='username'){ const u=$('#un').value.trim().replace(/^@/,'').toLowerCase(); if(!/^[a-z0-9_]{3,20}$/.test(u)){ toast('Usernames are 3–20 characters: lowercase letters, numbers and _'); return; }
+    sb.from('profiles').insert({id:uid(),username:u,display_name:((S.profile&&S.profile.name)||u).slice(0,30),level:S.prefs.level||1}).then(({error})=>{ if(error) return toast(friendlyErr(error)); S.restoredFor=uid(); save(); cloudLoad(true); toast(`You're @${u}`); }); return; }
   if(f==='setup'){ const name=$('#su-name').value.trim(); if(!name){ $('#su-name').focus(); return; } const U=UI.setup;
     S.profile={name,created:iso(TODAY)}; S.prefs.level=U.level; S.prefs.goal=U.goal; S.prefs.hasBell=U.bell; if(!U.bell) UI.filters.mode='bw';
     save(); location.hash='today'; route(); toast('All set, '+name+'. Let\'s train.'); }
-  if(f==='profile'){ const n=$('#pf-name').value.trim(); if(n) S.profile.name=n; S.prefs.level=+$('#pf-level').value; S.prefs.goal=+$('#pf-goal').value; S.prefs.hasBell=$('#pf-bell').value==='1'; save(); route(); toast('Settings saved'); }
+  if(f==='profile'){ const n=$('#pf-name').value.trim(); if(n) S.profile.name=n; S.prefs.level=+$('#pf-level').value; S.prefs.goal=+$('#pf-goal').value; S.prefs.hasBell=$('#pf-bell').value==='1'; save(); route(); toast('Settings saved');
+    if(signedIn()){ const upd={display_name:S.profile.name.slice(0,30),level:S.prefs.level}; Object.assign(CL.profile,upd); sb.from('profiles').update(upd).eq('id',uid()).then(()=>{}); } }
   if(f==='friend'){ const v=$('#fa').value.trim(); if(!v) return; S.friends.push({id:'u'+Date.now(),name:v.includes('@')?v.split('@')[0]:v,streak:0,mpd:8,spw:3,last:'–',status:'pending'}); save(); route(); toast(`Friend request ready for ${v}`); }
 });
 
 route();
 checkForUpdate(true);
+cloudInit();
 })();
 </script>
 </body>

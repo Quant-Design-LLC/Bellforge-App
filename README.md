@@ -132,3 +132,15 @@ Edit the images in `assets/` (`icon-only.png`, `icon-foreground.png`, `icon-back
 ```bash
 npm run assets
 ```
+
+## Accounts (Supabase)
+
+Accounts, friends, shared challenges and cloud backup use the Supabase project
+`kwxwcuvsaldmebqfxwxy` (URL and publishable key are in `www/index.html`; the publishable key is
+safe to ship in the app). Never put the service_role / secret key in this repo.
+
+- Database setup: paste `supabase/schema.sql` into Supabase > SQL Editor and run it. It is safe to run again.
+- Authentication > Sign In / Providers > Email: keep Email enabled and turn **Confirm email off** until
+  custom SMTP is set up (Supabase's built-in email only sends to your own team).
+- The Supabase JS client is bundled at `www/vendor/supabase.js` (v2.119.0), so the app needs no CDN.
+- Meal plan inputs are never uploaded; the backup excludes them.
