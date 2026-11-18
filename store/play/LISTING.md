@@ -171,6 +171,23 @@ Both stores require a public URL. The policy is at `docs/privacy-policy.html` in
 
 ---
 
+## Version 1.0.15 release notes (Play Console > Open testing > Create new release)
+
+Paste only the block below into the release notes box. (If you never uploaded 1.0.14, this one covers both.)
+
+```
+<en-US>
+New in this update
+- New welcome screen: create an account, sign in, or continue without one
+- Keep me signed in, or sign in each time you open the app
+- Your email is remembered on the sign-in screen
+- Cleaner Today and Friends screens; challenge library tucked behind New challenge
+</en-US>
+```
+
+**Sign in details (App content)**: update the "Any other information" text to:
+"Accounts are optional; all workouts work without signing in. To test friends and challenges, tap Sign in on the welcome screen and use these details. If you are already in the app, go to Progress > Sign out first."
+
 ## Version 1.0.14 release notes (Play Console > Open testing > Create new release)
 
 Paste only the block below into the release notes box.

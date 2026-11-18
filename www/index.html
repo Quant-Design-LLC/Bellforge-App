@@ -193,6 +193,13 @@ details.fold>summary::-webkit-details-marker{display:none}
 details.fold>summary::after{content:'Show';font-weight:600;font-size:13px;color:var(--muted)}
 details.fold[open]>summary::after{content:'Hide'}
 .backlink{background:none;border:0;padding:0;color:var(--muted);font-weight:600;font-size:14px;cursor:pointer}
+/* welcome */
+.welcome{max-width:460px;margin:6vh auto 0;text-align:left}
+.welcome .hero-img{border-radius:var(--r);overflow:hidden;margin:18px 0 22px}
+.welcome .btn.wide{width:100%;justify-content:center;padding:14px;font-size:16px}
+.keep{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:500;cursor:pointer}
+.keep input{width:20px;height:20px;margin-top:1px;accent-color:var(--accent);flex:none}
+.keep span span{display:block;font-size:12.5px;color:var(--muted);font-weight:400}
 /* filters */
 .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
@@ -882,6 +889,7 @@ function route(){
   else if(h==='challenges') view='friends';
   else if(h==='timer' || VIEWS.some(v=>v[0]===h)) view=h;
   if(view!=='friends'){ UI.newChal=false; UI.contestDraft=null; UI.showAuth=false; }
+  if(sb && !CL.user && !S.guest){ document.body.classList.add('setup-mode'); $('#main').innerHTML=vWelcome(); return; }
   if(!S.profile){ document.body.classList.add('setup-mode'); $('#main').innerHTML=UI.setupSignin?vSetupSignin():vSetup(); return; }
   document.body.classList.remove('setup-mode');
   renderNav(view);
@@ -907,6 +915,7 @@ window.addEventListener('hashchange',route);
 const SB_URL='https://kwxwcuvsaldmebqfxwxy.supabase.co', SB_KEY='sb_publishable_SA6pj51ZNUxcN5Wb_LPTOg_-cObg6f2';
 const CL={user:null,profile:null,friends:[],incoming:[],outgoing:[],people:{},acts:[],chals:[],loading:false,loaded:false,lastLoad:0,offline:false};
 let sb=null;
+try{ if(S.keep===false && localStorage.getItem('bellforge-auth')){ localStorage.removeItem('bellforge-auth'); localStorage.removeItem('bellforge-cloud-cache'); UI.authMode='signin'; UI.wauth=true; } }catch(e){}
 try{ if(window.supabase&&window.supabase.createClient) sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'bellforge-auth'}}); }catch(e){ sb=null; }
 const CC_KEY='bellforge-cloud-cache';
 (function restoreCloudCache(){
@@ -1001,8 +1010,9 @@ function authPanel(mode){
     <div><h2>${up?'Create your free account':'Sign in to BellForge'}</h2>
     <p class="small muted" style="margin-top:4px">${up?'Get a username so friends can add you, compete on real leaderboards and see each other\'s workouts. Your training history is backed up too.':'Use the email and password you signed up with. Your workouts come back automatically.'}</p></div>
     ${up?`<label class="f">Username<input id="au-user" type="text" maxlength="20" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="e.g. mike_swings" value="${esc(UI.authUser||'')}"><span class="small muted" style="font-weight:400;text-transform:none;letter-spacing:0">3–20 characters: lowercase letters, numbers and _</span></label>`:''}
-    <label class="f">Email<input id="au-email" type="email" autocapitalize="none" autocorrect="off" autocomplete="email" value="${esc(UI.authEmail||'')}"></label>
+    <label class="f">Email<input id="au-email" type="email" autocapitalize="none" autocorrect="off" autocomplete="${up?'email':'username'}" value="${esc(UI.authEmail||(!up&&S.lastEmail)||'')}"></label>
     <label class="f">Password<input id="au-pass" type="password" autocomplete="${up?'new-password':'current-password'}" placeholder="${up?'At least 8 characters':''}"></label>
+    <label class="keep"><input type="checkbox" id="au-keep" ${S.keep!==false?'checked':''}><span>Keep me signed in<span>Turn off to sign in each time you open the app.</span></span></label>
     ${UI.authErr?`<p class="err" role="alert">${esc(UI.authErr)}</p>`:''}
     <button class="btn pri" type="submit" ${UI.authBusy?'disabled':''}>${UI.authBusy?'One moment…':up?'Create account':'Sign in'}</button>
     <button type="button" class="btn ghost sm" data-act="authmode" data-m="${up?'signin':'signup'}" style="align-self:flex-start;padding-left:0">${up?'Already have an account? Sign in':'New here? Create an account'}</button>
@@ -1013,7 +1023,7 @@ function authFail(msg){ UI.authBusy=false; UI.authErr=msg; route(); }
 async function doAuth(mode){
   if(!sb) return authFail('Accounts are not available right now. Try updating the app.');
   const email=$('#au-email').value.trim(), pass=$('#au-pass').value; const u=mode==='signup'?$('#au-user').value.trim().replace(/^@/,'').toLowerCase():'';
-  UI.authEmail=email; UI.authUser=u;
+  UI.authEmail=email; UI.authUser=u; const keepEl=$('#au-keep'); if(keepEl) S.keep=keepEl.checked;
   if(!/^\S+@\S+\.\S+$/.test(email)) return authFail('Enter a valid email address.');
   if(mode==='signup'){ if(!/^[a-z0-9_]{3,20}$/.test(u)) return authFail('Usernames are 3–20 characters: lowercase letters, numbers and _.'); if(pass.length<8) return authFail('Use at least 8 characters for your password.'); }
   else if(!pass) return authFail('Enter your password.');
@@ -1026,11 +1036,11 @@ async function doAuth(mode){
       CL.user=data.session.user;
       const {error:pe}=await sb.from('profiles').insert({id:CL.user.id,username:u,display_name:((S.profile&&S.profile.name)||u).slice(0,30),level:S.prefs.level||1});
       if(pe){ UI.authBusy=false; CL.profile=null; CL.loaded=true; route(); return toast(friendlyErr(pe)); }
-      S.restoredFor=CL.user.id;
+      S.restoredFor=CL.user.id; S.lastEmail=email; S.guest=false; UI.wauth=false;
       UI.authBusy=false; UI.authErr=''; UI.authUser=''; UI.showAuth=false; await cloudLoad(true); doBackup(); toast(`Welcome, @${u}. Your account is ready.`);
     } else {
       const {data,error}=await sb.auth.signInWithPassword({email,password:pass}); if(error) throw error;
-      CL.user=data.user; UI.authBusy=false; UI.authErr=''; UI.showAuth=false; await cloudLoad(true); toast('Signed in');
+      CL.user=data.user; S.lastEmail=email; S.guest=false; UI.wauth=false; save(); UI.authBusy=false; UI.authErr=''; UI.showAuth=false; await cloudLoad(true); toast('Signed in');
     }
   }catch(e){ authFail(friendlyErr(e)); }
 }
@@ -1090,8 +1100,25 @@ function vSetup(){
       <button type="button" class="opt" data-act="su" data-k="bell" data-v="1" aria-pressed="${U.bell}">Yes<span>Show me kettlebell workouts</span></button>
       <button type="button" class="opt" data-act="su" data-k="bell" data-v="0" aria-pressed="${!U.bell}">Not yet<span>Start with bodyweight workouts</span></button></div></div>
     <button class="btn pri" type="submit" style="padding:14px;font-size:16px">Start training</button>
-    ${sb?'<button type="button" class="btn ghost" data-act="setupsignin">Already have an account? Sign in</button>':''}
   </form>`;
+}
+function vWelcome(){
+  if(UI.wauth) return `<div class="welcome stack" style="gap:14px">
+      <button type="button" class="backlink" data-act="wback" style="align-self:flex-start">‹ Back</button>
+      ${authPanel(UI.authMode||'signin')}
+    </div>`;
+  return `<div class="welcome">
+    <div class="brand" style="padding:0 0 6px"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><path d="M10 12 Q10 3 16 3 Q22 3 22 12" style="fill:none;stroke:var(--accent);stroke-width:3.2;stroke-linecap:round"/><circle cx="16" cy="20" r="10" style="fill:var(--accent)"/></svg><b>BellForge</b></div>
+    <h1>Kettlebell training that sticks</h1>
+    <p class="sub" style="color:var(--muted);margin-top:6px">Workouts with muscle maps, a guided timer, and challenges with friends.</p>
+    <div class="hero-img">${pic('sw2')}</div>
+    <div class="stack" style="gap:10px">
+      <button class="btn pri wide" data-act="wauth" data-m="signup">Create free account</button>
+      <button class="btn wide" data-act="wauth" data-m="signin">Sign in</button>
+      <button class="backlink" data-act="wguest" style="margin-top:8px;align-self:center">Continue without an account</button>
+      <p class="small muted" style="text-align:center">Without an account, workouts stay on this phone and friends features are off.</p>
+    </div>
+  </div>`;
 }
 function vSetupSignin(){ return `<div class="setup stack" style="gap:16px">${authPanel('signin')}<button type="button" class="btn ghost" data-act="setupback">Back to setup</button></div>`; }
 
@@ -1853,6 +1880,9 @@ const ACT={
   hasbell:()=>{ S.prefs.hasBell=true; save(); route(); toast('Kettlebell workouts are back on your Today screen'); },
   invite:b=>{ const c=b.dataset.c; const me=signedIn()?` Add me: @${CL.profile.username}.`:''; shareText(`${c?`Join my "${c}" challenge on BellForge!`:"I'm training with BellForge: kettlebell workouts with muscle maps, classic workouts and challenges."}${me} Get it here:`,'Invite friends to BellForge',()=>{ S.invites=(S.invites||0)+1; S.feed.unshift({t:Date.now(),txt:'You shared an invite'}); save(); route(); }); },
   shareworkout:()=>{ const h=S.history[S.history.length-1]; if(!h) return; shareText(`I just finished ${h.name||'a workout'} on BellForge${h.rounds?`: ${h.rounds} rounds`:h.secs?` in ${mmssLong(h.secs)}`:''}. ${streak()>1?`${streak()}-day streak. `:''}${signedIn()?`Add me: @${CL.profile.username}. `:''}Train with me:`,'Share your workout'); },
+  wauth:b=>{ UI.wauth=true; UI.authMode=b.dataset.m; UI.authErr=''; route(); },
+  wback:()=>{ UI.wauth=false; UI.authErr=''; route(); },
+  wguest:()=>{ S.guest=true; UI.wauth=false; save(); route(); },
   showauth:b=>{ UI.showAuth=true; UI.authMode=b.dataset.m; UI.authErr=''; if(b.dataset.go){ location.hash='friends'; } else route(); },
   hideauth:()=>{ UI.showAuth=false; UI.authErr=''; route(); },
   newchal:b=>{ UI.newChal=b.dataset.on==='1'; UI.contestDraft=null; route(); },
@@ -1867,11 +1897,11 @@ const ACT={
   fremove:b=>{ if(UI.confirmRemove===b.dataset.id){ UI.confirmRemove=null; dropFriend(b.dataset.id,'Friend removed'); } else { UI.confirmRemove=b.dataset.id; b.textContent='Tap to confirm'; } },
   cjoin:b=>joinCloud(b.dataset.id),
   cleave:b=>leaveCloud(b.dataset.id),
-  signout:async()=>{ try{ await doBackup(); await sb.auth.signOut(); }catch(e){} clearCloud(); route(); toast('Signed out. Your workouts stay on this phone.'); },
+  signout:async()=>{ try{ await doBackup(); await sb.auth.signOut(); }catch(e){} clearCloud(); S.guest=false; UI.wauth=true; UI.authMode='signin'; save(); location.hash='today'; route(); toast('Signed out. Your workouts stay on this phone.'); },
   delacct:()=>{ UI.confirmDelete=true; route(); },
   delcancel:()=>{ UI.confirmDelete=false; route(); },
   delacct2:async()=>{ const {error}=await sb.rpc('delete_my_account'); if(error) return toast(friendlyErr(error));
-    try{ await sb.auth.signOut({scope:'local'}); }catch(e){} clearCloud(); delete S.restoredFor; delete S.lastBackup; UI.confirmDelete=false; save(); route(); toast('Your account was deleted. Workouts on this phone are still here.'); },
+    try{ await sb.auth.signOut({scope:'local'}); }catch(e){} clearCloud(); S.guest=false; UI.wauth=false; delete S.restoredFor; delete S.lastBackup; UI.confirmDelete=false; save(); route(); toast('Your account was deleted. Workouts on this phone are still here.'); },
   cquit:b=>{ S.contests=S.contests.filter(c=>c.id!==b.dataset.id); save(); route(); toast('Challenge removed'); },
   tcat:b=>{ const y=window.scrollY; UI.tcat=b.dataset.c; route(); window.scrollTo(0,y); },
   tpl:b=>{ const t=TEMPLATES[+b.dataset.i]; UI.contestDraft={...t,tpl:true,wid:t.wid==='pick'?todaysPick().id:t.wid,stake:''}; UI.newChal=true; route(); },
@@ -1924,7 +1954,8 @@ document.addEventListener('submit',e=>{
     sb.from('profiles').insert({id:uid(),username:u,display_name:((S.profile&&S.profile.name)||u).slice(0,30),level:S.prefs.level||1}).then(({error})=>{ if(error) return toast(friendlyErr(error)); S.restoredFor=uid(); save(); cloudLoad(true); toast(`You're @${u}`); }); return; }
   if(f==='setup'){ const name=$('#su-name').value.trim(); if(!name){ $('#su-name').focus(); return; } const U=UI.setup;
     S.profile={name,created:iso(TODAY)}; S.prefs.level=U.level; S.prefs.goal=U.goal; S.prefs.hasBell=U.bell; if(!U.bell) UI.filters.mode='bw';
-    save(); location.hash='today'; route(); toast('All set, '+name+'. Let\'s train.'); }
+    save(); location.hash='today'; route(); toast('All set, '+name+'. Let\'s train.');
+    if(signedIn()){ const upd={display_name:name.slice(0,30),level:U.level}; Object.assign(CL.profile,upd); sb.from('profiles').update(upd).eq('id',uid()).then(()=>{}); } }
   if(f==='profile'){ const n=$('#pf-name').value.trim(); if(n) S.profile.name=n; S.prefs.level=+$('#pf-level').value; S.prefs.goal=+$('#pf-goal').value; S.prefs.hasBell=$('#pf-bell').value==='1'; save(); route(); toast('Settings saved');
     if(signedIn()){ const upd={display_name:S.profile.name.slice(0,30),level:S.prefs.level}; Object.assign(CL.profile,upd); sb.from('profiles').update(upd).eq('id',uid()).then(()=>{}); } }
   if(f==='friend'){ const v=$('#fa').value.trim(); if(!v) return; S.friends.push({id:'u'+Date.now(),name:v.includes('@')?v.split('@')[0]:v,streak:0,mpd:8,spw:3,last:'–',status:'pending'}); save(); route(); toast(`Friend request ready for ${v}`); }
