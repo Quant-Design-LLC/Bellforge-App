@@ -40,7 +40,7 @@ Repository secrets (**Settings > Secrets and variables > Actions**), same names 
 | `APPSTORE_API_ISSUER_ID` | Issuer ID (App Store Connect > Users and Access > Integrations) |
 | `APPSTORE_TEAM_ID` | `F9GFFNU83K` |
 | `MATCH_PASSWORD` | Passphrase for the match repo |
-| `MATCH_GIT_URL` | Git URL of `upkeepiq-match`, with access token |
+| `MATCH_GIT_TOKEN` | GitHub token with access to `upkeepiq-match` (or set `MATCH_GIT_URL` to the full URL with token) |
 
 One-time Apple setup: register the bundle ID `com.quants.bellforge` (developer.apple.com > Identifiers) and
 create the app in App Store Connect with that bundle ID. After the first successful run, set `readonly: true`

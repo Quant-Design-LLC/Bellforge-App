@@ -39,6 +39,7 @@ jobs:
           APPSTORE_TEAM_ID: ${{ secrets.APPSTORE_TEAM_ID }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_TOKEN: ${{ secrets.MATCH_GIT_TOKEN }}
         run: |
           missing=()
           [ -z "$APPSTORE_API_KEY_P8" ] && missing+=("APPSTORE_API_KEY_P8")
@@ -46,14 +47,14 @@ jobs:
           [ -z "$APPSTORE_API_ISSUER_ID" ] && missing+=("APPSTORE_API_ISSUER_ID")
           [ -z "$APPSTORE_TEAM_ID" ] && missing+=("APPSTORE_TEAM_ID")
           [ -z "$MATCH_PASSWORD" ] && missing+=("MATCH_PASSWORD")
-          [ -z "$MATCH_GIT_URL" ] && missing+=("MATCH_GIT_URL")
+          [ -z "$MATCH_GIT_URL" ] && [ -z "$MATCH_GIT_TOKEN" ] && missing+=("MATCH_GIT_TOKEN (or MATCH_GIT_URL)")
           if [ ${#missing[@]} -gt 0 ]; then
             echo "FATAL: Missing required repository secrets:"
             for s in "${missing[@]}"; do echo "  - $s"; done
             echo "Add them at https://github.com/Quant-Design-LLC/Bellforge-App/settings/secrets/actions"
             exit 1
           fi
-          echo "All 6 required secrets present"
+          echo "All required secrets present"
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -123,7 +124,8 @@ jobs:
       - name: Install cert and provisioning profile via fastlane match
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_URL_SECRET: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_TOKEN: ${{ secrets.MATCH_GIT_TOKEN }}
           MATCH_KEYCHAIN_NAME: ${{ env.CI_KEYCHAIN_PATH }}
           MATCH_KEYCHAIN_PASSWORD: temp-ci-keychain-bellforge
           APPSTORE_API_KEY_P8: ${{ secrets.APPSTORE_API_KEY_P8 }}
@@ -131,6 +133,9 @@ jobs:
           APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
         run: |
           set -e
+          # Use MATCH_GIT_URL if set; otherwise build it from MATCH_GIT_TOKEN.
+          if [ -n "$MATCH_GIT_URL_SECRET" ]; then export MATCH_GIT_URL="$MATCH_GIT_URL_SECRET";
+          else export MATCH_GIT_URL="https://x-access-token:${MATCH_GIT_TOKEN}@github.com/Quant-Design-LLC/upkeepiq-match.git"; fi
           bundle exec fastlane certs
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "temp-ci-keychain-bellforge" "$CI_KEYCHAIN_PATH"
           security find-identity -v -p codesigning "$CI_KEYCHAIN_PATH"
