@@ -3,10 +3,21 @@
   "appName": "BellForge",
   "webDir": "www",
   "backgroundColor": "#f1efeb",
-  "ios": { "contentInset": "never" },
-  "android": { "allowMixedContent": false },
+  "ios": {
+    "contentInset": "never"
+  },
+  "android": {
+    "allowMixedContent": false
+  },
   "plugins": {
-    "SplashScreen": { "launchShowDuration": 1200, "backgroundColor": "#b23c17", "showSpinner": false },
-    "StatusBar": { "overlaysWebView": false, "style": "DEFAULT" }
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#0b0706",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DEFAULT"
+    }
   }
 }

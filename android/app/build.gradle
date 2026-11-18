@@ -10,7 +10,7 @@ android {
         // CI passes BF_VERSION_CODE (GitHub run number); +10 keeps codes rising past manual uploads
         // Local Android Studio builds use bfLocalVersion; raise it by 1 for every Play upload.
         // CI builds use the GitHub run number + 10 instead.
-        def bfLocalVersion = 15
+        def bfLocalVersion = 16
         def bfCi = System.getenv("BF_VERSION_CODE")
         versionCode(bfCi ? bfCi.toInteger() + 10 : bfLocalVersion)
         versionName(bfCi ? "1.0.${bfCi.toInteger() + 10}" : "1.0.${bfLocalVersion}")

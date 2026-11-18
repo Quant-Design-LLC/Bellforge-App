@@ -323,7 +323,7 @@ pre.payload{background:var(--surface-2);border:1px solid var(--line);border-radi
 <body>
 <div class="app">
   <nav class="rail" aria-label="Main">
-    <div class="brand"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M10 12 Q10 3 16 3 Q22 3 22 12" style="fill:none;stroke:var(--accent);stroke-width:3.2;stroke-linecap:round"/><circle cx="16" cy="20" r="10" style="fill:var(--accent)"/></svg><b>BellForge</b></div>
+    <div class="brand"><img src="brand-icon.png" width="30" height="30" alt="" style="border-radius:7px;display:block"><b>BellForge</b></div>
     <div id="railnav" class="stack" style="gap:4px"></div>
     <div class="foot">Beta. Friend invites and meal delivery are coming soon. <button class="btn ghost sm" data-act="reset" style="padding:4px 0">Reset app data</button></div>
   </nav>
@@ -1090,7 +1090,7 @@ UI.setup={name:'',level:1,goal:3,bell:true};
 function vSetup(){
   const U=UI.setup;
   return `<form class="setup stack" data-form="setup" style="gap:20px">
-    <div><div class="brand" style="padding:0 0 10px"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><path d="M10 12 Q10 3 16 3 Q22 3 22 12" style="fill:none;stroke:var(--accent);stroke-width:3.2;stroke-linecap:round"/><circle cx="16" cy="20" r="10" style="fill:var(--accent)"/></svg><b>BellForge</b></div>
+    <div><div class="brand" style="padding:0 0 10px"><img src="brand-icon.png" width="34" height="34" alt="" style="border-radius:8px;display:block"><b>BellForge</b></div>
       <h1>Let's set you up</h1><p class="sub" style="color:var(--muted);margin-top:6px">Four quick questions so your Today screen fits you. You can change these any time on the Progress tab.</p></div>
     <label class="f">What should we call you?<input type="text" id="su-name" maxlength="30" required placeholder="First name" value="${esc(U.name)}" autocomplete="given-name"></label>
     <div><div class="lbl" style="margin-bottom:8px">Your kettlebell experience</div><div class="opts">
@@ -1108,7 +1108,7 @@ function vWelcome(){
       ${authPanel(UI.authMode||'signin')}
     </div>`;
   return `<div class="welcome">
-    <div class="brand" style="padding:0 0 6px"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><path d="M10 12 Q10 3 16 3 Q22 3 22 12" style="fill:none;stroke:var(--accent);stroke-width:3.2;stroke-linecap:round"/><circle cx="16" cy="20" r="10" style="fill:var(--accent)"/></svg><b>BellForge</b></div>
+    <div class="brand" style="padding:0 0 6px"><img src="brand-icon.png" width="34" height="34" alt="" style="border-radius:8px;display:block"><b>BellForge</b></div>
     <h1>Kettlebell training that sticks</h1>
     <p class="sub" style="color:var(--muted);margin-top:6px">Workouts with muscle maps, a guided timer, and challenges with friends.</p>
     <div class="hero-img">${pic('sw2')}</div>

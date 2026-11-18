@@ -171,6 +171,19 @@ Both stores require a public URL. The policy is at `docs/privacy-policy.html` in
 
 ---
 
+## Version 1.0.16 release notes (Play Console > Open testing > Create new release)
+
+Paste only the block below into the release notes box.
+
+```
+<en-US>
+New in this update
+- New BellForge icon and splash screen
+</en-US>
+```
+
+**Store listing icon:** upload `store/play/icon-512.png` under Grow users > Store presence > Main store listing > App icon. This doesn't need a new build.
+
 ## Version 1.0.15 release notes (Play Console > Open testing > Create new release)
 
 Paste only the block below into the release notes box. (If you never uploaded 1.0.14, this one covers both.)
