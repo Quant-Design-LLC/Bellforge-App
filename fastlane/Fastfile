@@ -15,10 +15,9 @@ platform :ios do
       type: "appstore",
       app_identifier: "com.quants.bellforge",
       api_key: api_key,
-      # First run must be false so match can add the BellForge profile to the
-      # shared upkeepiq-match repo (it reuses the existing Distribution cert).
-      # Flip to true after the first successful run.
-      readonly: false
+      # The BellForge profile was added to upkeepiq-match on the first run
+      # (Nov 18, 2026), so CI only reads from the match repo now.
+      readonly: true
     )
   end
 end
