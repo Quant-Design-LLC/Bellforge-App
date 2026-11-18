@@ -73,7 +73,7 @@ WHY BELLFORGE
 - Works offline, with no ads
 
 PUBLIC BETA
-BellForge is in public beta. Your workouts and progress are saved on your device. Friend invites, shared leaderboards and meal delivery are coming soon as we build accounts and syncing. Tell us what you'd like next; your feedback shapes the app.
+BellForge is in public beta. Create a free account to get a username, add friends, compete on shared leaderboards and back up your workouts, or use the app without an account and keep everything on your phone. Meal delivery is coming soon. Tell us what you'd like next; your feedback shapes the app.
 
 Always warm up, use a kettlebell weight you can control with good form, and check with your doctor before starting a new training program.
 ```
@@ -170,6 +170,20 @@ Both stores require a public URL. The policy is at `docs/privacy-policy.html` in
 ---
 
 ---
+
+## Version 1.0.14 release notes (Play Console > Open testing > Create new release)
+
+Paste only the block below into the release notes box.
+
+```
+<en-US>
+New in this update
+- Cleaner Today screen: your week, today's workout, your challenge and friends
+- Friends tab now puts your challenges and friends first
+- New challenge button keeps the challenge library tucked away until you need it
+- Stays signed in, even when you open the app offline
+</en-US>
+```
 
 ## Version 1.0.13 release notes (Play Console > Open testing > Create new release)
 

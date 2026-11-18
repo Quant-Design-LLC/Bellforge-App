@@ -177,6 +177,22 @@ body.setup-mode .app{grid-template-columns:1fr}
 .lb:last-child{border-bottom:0}
 .lb.me{font-weight:700}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block}
+/* 1.0.14 cleaner layout */
+.big{font-family:var(--display);font-size:38px;font-weight:700;line-height:1;margin-top:4px}
+.big small{font-size:17px;color:var(--muted);font-weight:600}
+.stack16>*+*{margin-top:16px}
+.sec{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:22px 0 10px}
+.sec h2{margin:0}
+.rowitem{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.rowitem:last-child{border-bottom:0;padding-bottom:0}
+.rowitem .who{flex:1;min-width:0}
+.rowitem .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slim{display:flex;justify-content:space-between;align-items:center;gap:14px}
+details.fold>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;font-weight:700}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::after{content:'Show';font-weight:600;font-size:13px;color:var(--muted)}
+details.fold[open]>summary::after{content:'Hide'}
+.backlink{background:none;border:0;padding:0;color:var(--muted);font-weight:600;font-size:14px;cursor:pointer}
 /* filters */
 .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
@@ -865,6 +881,7 @@ function route(){
   else if(/^p-p\d+$/.test(h) && PM[h.slice(2)]){ view='programs'; prog=PM[h.slice(2)]; }
   else if(h==='challenges') view='friends';
   else if(h==='timer' || VIEWS.some(v=>v[0]===h)) view=h;
+  if(view!=='friends'){ UI.newChal=false; UI.contestDraft=null; UI.showAuth=false; }
   if(!S.profile){ document.body.classList.add('setup-mode'); $('#main').innerHTML=UI.setupSignin?vSetupSignin():vSetup(); return; }
   document.body.classList.remove('setup-mode');
   renderNav(view);
@@ -875,6 +892,7 @@ function route(){
   if(view==='timer') updateTimerUI();
   if(view==='progress') wireCharts(main);
   if(view==='friends') cloudLoad(false);
+  if(signedIn()) saveCloudCache();
   const rb=$('#resumebar'); if(rb) rb.remove();
   if(T.steps.length && !T.done && view!=='timer' && T.elapsed>0){
     const d=document.createElement('div'); d.className='resume'; d.id='resumebar';
@@ -890,6 +908,14 @@ const SB_URL='https://kwxwcuvsaldmebqfxwxy.supabase.co', SB_KEY='sb_publishable_
 const CL={user:null,profile:null,friends:[],incoming:[],outgoing:[],people:{},acts:[],chals:[],loading:false,loaded:false,lastLoad:0,offline:false};
 let sb=null;
 try{ if(window.supabase&&window.supabase.createClient) sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'bellforge-auth'}}); }catch(e){ sb=null; }
+const CC_KEY='bellforge-cloud-cache';
+(function restoreCloudCache(){
+  try{ const raw=localStorage.getItem('bellforge-auth'); if(raw){ const j=JSON.parse(raw); const u=j&&(j.user||(j.currentSession&&j.currentSession.user)); if(u&&u.id) CL.user=u; } }catch(e){}
+  try{ const c=JSON.parse(localStorage.getItem(CC_KEY)||'null');
+    if(CL.user && c && c.uid===CL.user.id && c.profile){ CL.profile=c.profile; CL.people=c.people||{}; CL.people[c.uid]=c.profile; CL.friends=c.friends||[]; CL.incoming=c.incoming||[]; CL.outgoing=c.outgoing||[]; CL.acts=c.acts||[]; CL.chals=c.chals||[]; CL.loaded=true; } }catch(e){}
+})();
+function saveCloudCache(){ try{ if(!CL.user||!CL.profile) return; localStorage.setItem(CC_KEY,JSON.stringify({uid:CL.user.id,profile:CL.profile,people:CL.people,friends:CL.friends,incoming:CL.incoming,outgoing:CL.outgoing,acts:CL.acts.slice(0,40),chals:CL.chals})); }catch(e){} }
+function clearCloud(){ Object.assign(CL,{user:null,profile:null,friends:[],incoming:[],outgoing:[],people:{},acts:[],chals:[],loaded:false,offline:false}); try{ localStorage.removeItem(CC_KEY); }catch(e){} }
 const uid=()=>CL.user?CL.user.id:null;
 const signedIn=()=>!!(CL.user&&CL.profile);
 const pname=id=>{ if(id===uid()) return 'You'; const p=CL.people[id]; return p?(p.display_name||'@'+p.username):'A friend'; };
@@ -905,10 +931,10 @@ function friendlyErr(e){ const m=(e&&(e.message||e.error_description||e.msg))||S
   return m||'Something went wrong. Try again.'; }
 async function cloudInit(){
   if(!sb) return;
-  try{ const {data}=await sb.auth.getSession(); CL.user=data&&data.session?data.session.user:null; }catch(e){}
+  try{ const {data}=await sb.auth.getSession(); const u=data&&data.session?data.session.user:null; if(!u && CL.user){ clearCloud(); rerender(); } CL.user=u; }catch(e){}
   sb.auth.onAuthStateChange((ev,session)=>{ const nu=session?session.user:null; const changed=(nu&&nu.id)!==uid(); CL.user=nu;
     if(!changed || UI.authBusy) return;
-    if(nu) setTimeout(()=>cloudLoad(true),0); else { Object.assign(CL,{profile:null,friends:[],incoming:[],outgoing:[],acts:[],chals:[],loaded:false}); rerender(); } });
+    if(nu) setTimeout(()=>cloudLoad(true),0); else { clearCloud(); rerender(); } });
   if(CL.user) await cloudLoad(true);
 }
 async function cloudLoad(force){
@@ -936,8 +962,8 @@ async function cloudLoad(force){
       if(miss.length){ const r=await sb.from('profiles').select('id,username,display_name').in('id',miss); (r.data||[]).forEach(p=>CL.people[p.id]=p); }
       await restoreIfNeeded(); syncScores();
     }
-    CL.loaded=true; CL.offline=false;
-  }catch(e){ CL.offline=true; }
+    CL.loaded=true; CL.offline=false; saveCloudCache();
+  }catch(e){ CL.offline=true; if(!CL.retried){ CL.retried=true; setTimeout(()=>{ CL.retried=false; cloudLoad(true); },8000); } }
   CL.loading=false; rerender(['friends','progress','today']);
 }
 function chalFromRow(r){ const rule=r.rule||{}; const c={id:r.id,cloud:true,owner:r.owner,name:r.name,metric:r.metric,start:r.start_date,end:iso(addDays(fromIso(r.start_date),r.days-1)),stake:r.stake||'',members:(r.challenge_members||[]).map(m=>({id:m.user_id,score:m.score}))};
@@ -1001,10 +1027,10 @@ async function doAuth(mode){
       const {error:pe}=await sb.from('profiles').insert({id:CL.user.id,username:u,display_name:((S.profile&&S.profile.name)||u).slice(0,30),level:S.prefs.level||1});
       if(pe){ UI.authBusy=false; CL.profile=null; CL.loaded=true; route(); return toast(friendlyErr(pe)); }
       S.restoredFor=CL.user.id;
-      UI.authBusy=false; UI.authErr=''; UI.authUser=''; await cloudLoad(true); doBackup(); toast(`Welcome, @${u}. Your account is ready.`);
+      UI.authBusy=false; UI.authErr=''; UI.authUser=''; UI.showAuth=false; await cloudLoad(true); doBackup(); toast(`Welcome, @${u}. Your account is ready.`);
     } else {
       const {data,error}=await sb.auth.signInWithPassword({email,password:pass}); if(error) throw error;
-      CL.user=data.user; UI.authBusy=false; UI.authErr=''; await cloudLoad(true); toast('Signed in');
+      CL.user=data.user; UI.authBusy=false; UI.authErr=''; UI.showAuth=false; await cloudLoad(true); toast('Signed in');
     }
   }catch(e){ authFail(friendlyErr(e)); }
 }
@@ -1071,63 +1097,68 @@ function vSetupSignin(){ return `<div class="setup stack" style="gap:16px">${aut
 
 /* ---------- Today ---------- */
 function greet(){ const h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':'Good evening'; }
+const ord=n=>n+((n%10===1&&n%100!==11)?'st':(n%10===2&&n%100!==12)?'nd':(n%10===3&&n%100!==13)?'rd':'th');
+function activeChallenges(){ return [...(signedIn()?CL.chals.filter(c=>c.joined&&contestDays(c).left>0):[]),...S.contests.filter(c=>contestDays(c).left>0)]; }
+function todayChallenge(){
+  const list=activeChallenges(); if(!list.length) return '';
+  const c=list[0], sc=myScore(c), u=unit(c)?' '+unit(c):'';
+  let line;
+  if(c.cloud && c.members.length>1){ const rows=c.members.map(m=>({id:m.id,s:m.id===uid()?sc:m.score})).sort((a,b)=>b.s-a.s); const r=rows.findIndex(x=>x.id===uid())+1; const lead=rows[0];
+    line = r===1 ? `You're leading with ${sc}${u}` : `You're ${ord(r)} of ${rows.length} · ${pname(lead.id)} leads with ${lead.s}${u}`; }
+  else line = c.target ? `${sc} of ${c.target}${u} done` : `Your score: ${sc}${u}`;
+  return `<div class="panel"><div class="row between"><span class="lbl">Your challenge</span><span class="small muted">${contestDays(c).left} days left</span></div>
+    <h3 style="margin-top:6px">${esc(c.name)}</h3><p class="small" style="margin-top:2px">${esc(line)}</p>
+    ${c.target?`<div class="bar" style="margin-top:8px"><i style="width:${Math.min(100,sc/c.target*100)}%"></i></div>`:''}
+    <button class="btn sm" data-act="nav" data-v="friends" style="margin-top:12px">${list.length>1?`All ${list.length} challenges`:'Open challenge'}</button></div>`;
+}
+function todayFriends(){
+  if(signedIn() && CL.friends.length){
+    const rows=CL.friends.map(id=>({id,n:thisWeekCount(id)})).sort((a,b)=>b.n-a.n).slice(0,4);
+    return `<div class="panel"><div class="row between"><span class="lbl">Friends this week</span><button class="backlink" data-act="nav" data-v="friends">See all</button></div>
+      ${rows.map(r=>`<div class="rowitem">${avatar(r.id,32)}<div class="who"><b>${esc(pname(r.id))}</b></div><span class="small num">${r.n} workout${r.n===1?'':'s'}</span></div>`).join('')}</div>`;
+  }
+  return `<div class="panel slim"><div><h3>Train with friends</h3><p class="small muted" style="margin-top:2px">${signedIn()?'Invite a friend, then add each other by username.':'Training is easier when someone is counting on you.'}</p></div><button class="btn sm pri" data-act="invite">Invite</button></div>`;
+}
+function todayMore(pick){
+  const items=[];
+  const ids=Object.keys(S.enrolled||{});
+  if(ids.length){ const p=PM[ids[0]], k=nextSlot(p); if(k>=0){ const w=W(p.sched[k]); items.push(`<div class="rowitem"><div class="who"><b>${esc(p.name)}</b><span class="small muted">Week ${Math.floor(k/p.per)+1}, session ${k%p.per+1} · ${esc(w.name)} · ${w.dur} min</span></div><button class="btn sm" data-act="pnext" data-p="${p.id}">Start</button></div>`); } }
+  const wkN=Math.floor((TODAY-new Date(2026,0,5))/6048e5); const c=CLASSICS[((wkN%CLASSICS.length)+CLASSICS.length)%CLASSICS.length];
+  items.push(`<div class="rowitem"><div class="who"><b>${esc(c.name)}</b><span class="small muted">Classic of the week · ${c.dur} min</span></div><button class="btn sm" data-act="open" data-id="${c.id}">View</button></div>`);
+  if(!pick.bw){ const b=bwPick(); items.push(`<div class="rowitem"><div class="who"><b>${esc(b.name)}</b><span class="small muted">No bell today? Bodyweight · ${b.dur} min</span></div><button class="btn sm" data-act="open" data-id="${b.id}">View</button></div>`); }
+  else { const k=todaysPick(); items.push(`<div class="rowitem"><div class="who"><b>${esc(k.name)}</b><span class="small muted">Kettlebell · ${k.dur} min</span></div><button class="btn sm" data-act="open" data-id="${k.id}">View</button></div>`); }
+  if(!ids.length) items.push(`<div class="rowitem"><div class="who"><b>Follow a program</b><span class="small muted">Multi-week plans that get harder each week</span></div><button class="btn sm" data-act="nav" data-v="programs">Browse</button></div>`);
+  return `<div class="panel"><span class="lbl">Or try</span>${items.join('')}</div>`;
+}
 function vToday(){
   const pick=S.prefs.hasBell===false?bwPick():todaysPick(); const st=streak(); const wk=weekDays(); const done=new Set(S.history.map(h=>h.d));
-  const weekCount=sessionsBetween(iso(wk[0]),iso(wk[6])).length;
-  const m1=iso(new Date(TODAY.getFullYear(),TODAY.getMonth(),1));
-  const minMonth=sessionsBetween(m1,iso(TODAY)).reduce((a,h)=>a+h.min,0);
-  const c=S.contests[0]; let contestHtml='<span class="lbl">Challenges</span><h3 style="margin-top:6px">Pick a challenge</h3><p class="small muted" style="margin-top:4px">58 ready-made challenges, from a 5-workout starter to the 10,000 Swing Challenge.</p><button class="btn sm pri" data-act="nav" data-v="friends" style="margin-top:10px">Browse challenges</button>'; let rankTxt='–';
-  if(c){ const sd=standings(c); const myRank=sd.findIndex(x=>x.id==='me')+1; rankTxt=`${myRank}<small> of ${sd.length}</small>`;
-    contestHtml=`<div class="row between"><h3>${esc(c.name)}</h3><span class="chip">${contestDays(c).left} days left</span></div><p class="small muted" style="margin:4px 0 10px">Ranked by ${esc(metricName(c))}</p>${leaderboard(c,4)}<button class="btn sm" data-act="nav" data-v="friends" style="margin-top:10px">Open challenges</button>`; }
-  const o=S.meal.order;
-  const mealHtml = o ? `<h3>Next delivery: ${fmtDate(fromIso(o.next))}</h3><p class="muted small" style="margin-top:4px">${o.count} prepped meals · ${money(o.total)} / month</p><button class="btn sm" data-act="nav" data-v="meals" style="margin-top:10px">Manage meal plan</button>`
-                     : `<h3>Build your meal plan</h3><p class="muted small" style="margin-top:4px">Set your goal and diet, pick meals, and get a month of prepped meals delivered.</p><button class="btn sm pri" data-act="nav" data-v="meals" style="margin-top:10px">Start meal plan</button>`;
+  const weekCount=sessionsBetween(iso(wk[0]),iso(wk[6])).length; const left=S.prefs.goal-weekCount;
   return `
-  <div class="head"><div><h1>${greet()}, ${esc(S.profile.name)}</h1><p class="sub">${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</p></div>
-    <div class="row"><span class="small muted">Your level</span><div class="seg">${[1,2,3].map(l=>`<button class="${LV[l].cls}" data-act="lvpref" data-l="${l}" aria-pressed="${S.prefs.level===l}"><span class="dot"></span>${LV[l].name}</button>`).join('')}</div></div></div>
-  <div class="grid g4" style="margin-bottom:16px">
-    <div class="panel tile"><div class="k">Streak</div><div class="v num">${st}<small> days</small></div></div>
-    <div class="panel tile"><div class="k">This week</div><div class="v num">${weekCount}<small> of ${S.prefs.goal}</small></div></div>
-    <div class="panel tile"><div class="k">Minutes this month</div><div class="v num">${minMonth}</div></div>
-    <div class="panel tile"><div class="k">Total workouts</div><div class="v num">${S.history.length}</div></div>
-  </div>
+  <div class="head"><div><h1>${greet()}, ${esc(S.profile.name)}</h1><p class="sub">${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</p></div></div>
   <div class="grid g2">
-    <div class="panel">
-      <div class="row between"><span class="lbl">${pick.bw?"Today's pick · no bell needed":"Today's pick"}</span><span class="code">${pick.code}</span></div>
-      <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:10px">
-        ${pic(pick.items[0].ex)}
-        <div class="stack" style="gap:6px"><h2>${esc(pick.name)}</h2>
-          <div class="row" style="gap:6px"><span class="chip lvchip ${LV[pick.lv].cls}">${LV[pick.lv].name}</span><span class="chip">${FMT[pick.fmt].name}</span><span class="chip">${pick.dur} min</span></div>
-          <p class="small muted">${pick.items.map(i=>esc(EXM[i.ex].name)).join(' · ')}</p>
-          ${(m=>musChips(m.prim.slice(0,4),m.sec.slice(0,3)))(workoutMuscles(pick))}
-          <div class="row" style="margin-top:6px"><button class="btn pri" data-act="start" data-id="${pick.id}">Start session</button><button class="btn" data-act="open" data-id="${pick.id}">See form guide</button></div>
+    <div class="stack16">
+      <div class="panel">
+        <div class="row between" style="align-items:flex-start">
+          <div><div class="lbl">This week</div><div class="big num">${weekCount}<small> of ${S.prefs.goal}</small></div></div>
+          <div style="text-align:right"><div class="lbl">Streak</div><div class="big num">${st}<small> day${st===1?'':'s'}</small></div></div>
         </div>
+        <div class="week" style="margin-top:14px">${wk.map(d=>`<div><i class="${done.has(iso(d))?'on':''} ${iso(d)===iso(TODAY)?'today':''}"></i>${d.toLocaleDateString('en-US',{weekday:'narrow'})}</div>`).join('')}</div>
+        <p class="small muted" style="margin-top:10px">${left<=0?'Weekly goal hit. Anything more is a bonus.':`${left} more workout${left===1?'':'s'} to hit your weekly goal.`}</p>
+      </div>
+      <div class="panel">
+        <div class="row between"><span class="lbl">${pick.bw?"Today's workout · no bell needed":"Today's workout"}</span><span class="small muted">${LV[pick.lv].name} · ${FMT[pick.fmt].name} · ${pick.dur} min</span></div>
+        <div style="margin-top:10px">${pic(pick.items[0].ex)}</div>
+        <h2 style="margin-top:12px">${esc(pick.name)}</h2>
+        <p class="small muted" style="margin-top:4px">${pick.items.map(i=>esc(EXM[i.ex].name)).join(' · ')}</p>
+        <div class="row" style="margin-top:12px"><button class="btn pri" data-act="start" data-id="${pick.id}" style="flex:1">Start workout</button><button class="btn" data-act="open" data-id="${pick.id}">Form guide</button></div>
       </div>
     </div>
-    <div class="panel">
-      <div class="row between"><span class="lbl">This week</span><label class="small muted">Weekly goal <select data-ch="goal" id="goal-sel">${[2,3,4,5,6].map(n=>`<option ${S.prefs.goal===n?'selected':''}>${n}</option>`).join('')}</select></label></div>
-      <div class="week" style="margin-top:14px">${wk.map(d=>`<div><i class="${done.has(iso(d))?'on':''} ${iso(d)===iso(TODAY)?'today':''}"></i>${d.toLocaleDateString('en-US',{weekday:'narrow'})}</div>`).join('')}</div>
-      <div class="bar" style="margin-top:16px"><i style="width:${Math.min(100,weekCount/S.prefs.goal*100)}%"></i></div>
-      <p class="small muted" style="margin-top:8px">${weekCount>=S.prefs.goal?'Weekly goal hit. Anything more is a bonus.':`${S.prefs.goal-weekCount} more session${S.prefs.goal-weekCount===1?'':'s'} to hit your goal.`}</p>
+    <div class="stack16">
+      ${todayChallenge()}
+      ${todayFriends()}
+      ${todayMore(pick)}
     </div>
-    <div class="panel">${(()=>{ const ids=Object.keys(S.enrolled||{}); if(!ids.length) return `<span class="lbl">Programs</span><h3 style="margin-top:6px">Follow a plan</h3><p class="small muted" style="margin-top:4px">Six multi-week programs that build difficulty week by week.</p><button class="btn sm pri" data-act="nav" data-v="programs" style="margin-top:10px">Browse programs</button>`;
-      const p=PM[ids[0]], e=S.enrolled[p.id], k=nextSlot(p); const w=k>=0?W(p.sched[k]):null;
-      return `<div class="row between"><span class="lbl">Your program</span><span class="small muted">${e.done.length} of ${p.n} done</span></div><h3 style="margin-top:6px">${esc(p.name)}</h3><div class="bar" style="margin:8px 0"><i style="width:${e.done.length/p.n*100}%"></i></div>${w?`<p class="small">Next: week ${Math.floor(k/p.per)+1}, session ${k%p.per+1}: <b>${esc(w.name)}</b> · ${w.dur} min</p><div class="row" style="margin-top:10px"><button class="btn sm pri" data-act="pnext" data-p="${p.id}">Start next session</button><button class="btn sm" data-act="nav" data-v="p-${p.id}">View plan</button></div>`:'<p class="small">Program complete.</p>'}`; })()}</div>
-    <div class="panel">${(()=>{ const b=bwPick(); return `<div class="row between"><span class="lbl">No bell today? Bodyweight bonus</span><span class="code">${b.code}</span></div>
-      <div style="display:grid;grid-template-columns:minmax(120px,200px) 1fr;gap:14px;margin-top:10px;align-items:center">${pic(b.items[0].ex)}
-      <div><h3>${esc(b.name)}</h3><p class="small muted" style="margin-top:2px">${FMT[b.fmt].name} · ${b.dur} min · no equipment</p><p class="small" style="margin-top:4px">${b.items.map(i=>esc(EXM[i.ex].name)).join(' · ')}</p>
-      <div class="row" style="margin-top:8px"><button class="btn sm pri" data-act="start" data-id="${b.id}">Start</button><button class="btn sm" data-act="fmode" data-m="bw" onclick="location.hash='workouts'">All bodyweight</button></div></div></div>`; })()}</div>
-    <div class="panel">${(()=>{ const wkN=Math.floor((TODAY-new Date(2026,0,5))/6048e5); const c=CLASSICS[((wkN%CLASSICS.length)+CLASSICS.length)%CLASSICS.length];
-      return `<div class="row between"><span class="lbl">Classic of the week</span><span class="code">${c.code}</span></div>
-      <div style="display:grid;grid-template-columns:minmax(120px,200px) 1fr;gap:14px;margin-top:10px;align-items:center">${pic(c.items[0].ex)}
-      <div><h3>${esc(c.name)}</h3><p class="small muted" style="margin-top:2px">${esc(c.credit)} · ${c.dur} min</p><p class="small" style="margin-top:4px">${c.items.map(i=>esc(EXM[i.ex].name)).join(' · ')}</p>
-      <div class="row" style="margin-top:8px"><button class="btn sm pri" data-act="start" data-id="${c.id}">Start</button><button class="btn sm" data-act="open" data-id="${c.id}">How it works</button></div></div></div>`; })()}</div>
-    <div class="panel">${contestHtml}</div>
-    <div class="panel">${mealHtml}</div>
-  </div>
-  <div class="hero" style="margin-top:16px"><div><h2>Train with friends</h2><p style="margin-top:4px">Invite friends to BellForge and start a challenge together.</p></div><button class="btn" data-act="invite">Invite friends</button></div>
-  ${S.prefs.hasBell===false?`<div class="panel" style="margin-top:16px"><div class="row between"><div><h3>Ready for a kettlebell?</h3><p class="small muted" style="margin-top:2px">Most people start with 8–12 kg, or 16 kg if they already lift.</p></div><div class="row">${shopBtn('kb')}<button class="btn sm" data-act="hasbell">I have one now</button></div></div></div>`:''}
-  <div class="note" style="margin-top:16px"><b>Beta</b><span>Your workouts and progress are saved on this phone. Friend invites, shared leaderboards and meal delivery are coming soon.</span></div>`;
+  </div>`;
 }
 
 /* ---------- Workouts ---------- */
@@ -1421,67 +1452,23 @@ function challengeCard(c){
   if(c.cloud){ const rows=c.members.map(m=>({id:m.id,score:m.id===uid()?sc:m.score})).sort((a,b)=>b.score-a.score);
     board=`<div style="margin-top:10px">${rows.map((r,i)=>`<div class="lb ${r.id===uid()?'me':''}"><span class="num muted">${i+1}</span><span>${esc(pname(r.id))} <span class="handle">${r.id===uid()?'':esc(phandle(r.id))}</span></span><b class="num">${r.score}${unit(c)?' '+unit(c):''}${c.target?` <span class="muted small" style="font-weight:400">/ ${c.target}</span>`:''}</b></div>`).join('')}</div>`; }
   return `<div class="panel">
-    <div class="row between"><h3>${esc(c.name)}</h3><span class="chip">${ended?'Finished':cd.left+' of '+cd.len+' days left'}</span></div>
-    <p class="small muted" style="margin:4px 0 6px">${esc(metricName(c))}${c.cloud?` · ${c.members.length} ${c.members.length===1?'person':'people'}`:' · just you'}${c.stake?` · Stakes: ${esc(c.stake)}`:''}</p>
+    <div class="row between"><h3>${esc(c.name)}</h3><span class="small muted">${ended?'Finished':cd.left+' days left'}</span></div>
+    <p class="small muted" style="margin:2px 0 6px">${esc(metricName(c))}${c.stake?` · ${esc(c.stake)}`:''}</p>
     ${c.cloud?board:(c.target?`<div class="row between small"><b class="num">${sc} / ${c.target}${unit(c)?' '+unit(c):''}</b><span class="muted">${sc>=c.target?'Goal hit':Math.round(sc/c.target*100)+'%'}</span></div><div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,sc/c.target*100)}%"></i></div>`
       :`<div class="row between small"><span>Your score</span><b class="num">${sc}${unit(c)?' '+unit(c):''}</b></div><div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,cd.el/cd.len*100)}%"></i></div>`)}
-    <div class="row" style="margin-top:10px">${c.cloud&&!ended?`<button class="btn sm" data-act="invite" data-c="${esc(c.name)}">Invite friends</button>`:''}${c.cloud?`<button class="btn ghost sm" data-act="cleave" data-id="${c.id}">${c.owner===uid()&&c.members.every(m=>m.id===uid())?'Delete':'Leave'}</button>`:`<button class="btn ghost sm" data-act="cquit" data-id="${c.id}">Remove</button>`}</div>
+    <div class="row between" style="margin-top:12px">${c.cloud&&!ended?`<button class="btn sm" data-act="invite" data-c="${esc(c.name)}">Invite</button>`:'<span></span>'}${c.cloud?`<button class="backlink" data-act="cleave" data-id="${c.id}">${c.owner===uid()&&c.members.every(m=>m.id===uid())?'Delete':'Leave'}</button>`:`<button class="backlink" data-act="cquit" data-id="${c.id}">Remove</button>`}</div>
   </div>`;
 }
-function vFriends(){
-  const st=streak(); const wk=weekDays(); const weekCount=sessionsBetween(iso(wk[0]),iso(wk[6])).length;
-  const D=UI.contestDraft||{name:'',metric:'sessions',days:7,stake:''};
-  const cat=UI.tcat||'All'; const tpls=TEMPLATES.filter(t=>cat==='All'||t.cat===cat);
-  const on=signedIn(); const me=uid();
-  const mine=[...(on?CL.chals.filter(c=>c.joined):[]),...S.contests];
-  const open=on?CL.chals.filter(c=>!c.joined&&contestDays(c).left>0&&c.owner!==me):[];
-  const localFeed=S.feed.slice(0,8).map(f=>`<div><span>${esc(f.txt)}</span><span class="muted small" style="white-space:nowrap">${new Date(f.t).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span></div>`).join('');
-  const cloudFeed=CL.acts.slice(0,25).map(a=>`<div><span><b>${esc(pname(a.user_id))}</b> ${esc(a.title.replace(/^(Finished|Started|Joined)/,m=>m.toLowerCase()))}${a.minutes?` · ${a.minutes} min`:''}</span><span class="muted small" style="white-space:nowrap">${agoTxt(a.created_at)}</span></div>`).join('');
-  let account='';
-  if(!sb) account='';
-  else if(!CL.user) account=`<div style="margin-bottom:16px">${authPanel(UI.authMode||'signup')}</div>`;
-  else if(!CL.loaded) account=`<div class="panel" style="margin-bottom:16px"><p class="muted">${CL.offline?"You're offline. Friends will load when you reconnect.":'Loading your friends…'}</p></div>`;
-  else if(!CL.profile) account=`<form class="panel stack" data-form="username" style="margin-bottom:16px"><h2>Pick your username</h2><p class="small muted">Friends add you by this name.</p><label class="f">Username<input id="un" type="text" maxlength="20" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="e.g. mike_swings"></label><button class="btn pri" type="submit">Save username</button></form>`;
-  const hero=`<div class="hero" style="margin-bottom:16px"><div><h2>Invite friends to BellForge</h2><p style="margin-top:4px">${on?'Send them the app and your username so they can add you.':'Send a download link by text, WhatsApp, email or social media.'}</p>${on?`<span class="uname">@${esc(CL.profile.username)} <button class="btn ghost sm" data-act="copy" data-text="@${esc(CL.profile.username)}" aria-label="Copy your username">Copy</button></span>`:''}</div><button class="btn" data-act="invite">Invite friends</button></div>`;
-  const friendsPanel= on?`<div class="grid g2" style="margin-bottom:16px">
-    <div class="panel">
-      <div class="row between"><h2>Friends <span class="muted">(${CL.friends.length})</span></h2>${CL.loading?'<span class="small muted">Updating…</span>':`<button class="btn ghost sm" data-act="refresh">Refresh</button>`}</div>
-      <form class="row" data-form="addfriend" style="gap:8px;margin:10px 0 4px;flex-wrap:nowrap"><input id="af" type="text" maxlength="21" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Add by username, e.g. sarah_kb" aria-label="Friend's username" style="flex:1;min-width:0" value="${esc(UI.addFriend||'')}"><button class="btn pri" type="submit">Add</button></form>
-      ${CL.incoming.map(id=>`<div class="person">${avatar(id)}<div class="who"><b>${esc(pname(id))}</b><span class="handle">${esc(phandle(id))} wants to be friends</span></div><button class="btn pri sm" data-act="faccept" data-id="${id}">Accept</button><button class="btn ghost sm" data-act="fdecline" data-id="${id}" aria-label="Decline">✕</button></div>`).join('')}
-      ${CL.friends.map(id=>`<div class="person">${avatar(id)}<div class="who"><b>${esc(pname(id))}</b><span class="handle">${esc(phandle(id))}</span><span class="small muted" style="display:block">${thisWeekCount(id)} this week · ${lastSeen(id)}</span></div><button class="btn ghost sm" data-act="fremove" data-id="${id}" aria-label="Remove friend">Remove</button></div>`).join('')}
-      ${CL.outgoing.map(id=>`<div class="person">${avatar(id)}<div class="who"><b>${esc(pname(id))}</b><span class="handle">${esc(phandle(id))} · request sent</span></div><button class="btn ghost sm" data-act="fcancel" data-id="${id}">Cancel</button></div>`).join('')}
-      ${!CL.friends.length&&!CL.incoming.length&&!CL.outgoing.length?'<p class="small muted" style="padding:8px 0">No friends yet. Invite someone, then add them by their username once they sign up.</p>':''}
-    </div>
-    <div class="panel"><h2>Friend activity</h2><div class="feed" style="margin-top:8px">${cloudFeed||'<p class="small muted" style="padding:8px 0">When you and your friends finish workouts or join challenges, it shows up here.</p>'}</div></div>
-  </div>`:'';
-  return `
-  <div class="head"><div><h1>Friends &amp; challenges</h1><p class="sub">Invite friends, pick a challenge and keep each other going.</p></div></div>
-  ${hero}
-  ${account}
-  ${on?'':`<div class="grid g4" style="margin-bottom:16px">
-    <div class="panel tile"><div class="k">Your streak</div><div class="v num">${st}<small> days</small></div></div>
-    <div class="panel tile"><div class="k">This week</div><div class="v num">${weekCount}<small> of ${S.prefs.goal}</small></div></div>
-    <div class="panel tile"><div class="k">Active challenges</div><div class="v num">${S.contests.length}</div></div>
-    <div class="panel tile"><div class="k">Invites shared</div><div class="v num">${S.invites||0}</div></div></div>`}
-  ${friendsPanel}
-  ${open.length?`<h2 style="margin:4px 0 10px">Join a friend's challenge</h2><div class="grid g2" style="margin-bottom:16px">${open.map(c=>{ const cd=contestDays(c); return `<div class="panel"><div class="row between"><h3>${esc(c.name)}</h3><span class="chip">${cd.left} days left</span></div><p class="small muted" style="margin:4px 0 10px">Started by ${esc(pname(c.owner))} · ${esc(metricName(c))}${c.stake?` · Stakes: ${esc(c.stake)}`:''}</p><button class="btn pri sm" data-act="cjoin" data-id="${c.id}">Join challenge</button></div>`; }).join('')}</div>`:''}
-  <h2 style="margin:4px 0 10px">Your challenges</h2>
-  <div class="grid g2" style="margin-bottom:16px">
-    ${mine.length?mine.map(challengeCard).join(''):`<div class="empty">No challenges yet. Pick one from the library below.${on?' Your friends can see it and join.':' Goal challenges like Show-Up Week work solo, so you can start today.'}</div>`}
-  </div>
-  <div class="panel" style="margin-bottom:16px">
-    <div class="row between" style="margin-bottom:12px"><h2>Challenge library <span class="muted">(${TEMPLATES.length})</span></h2>
-      <div class="seg" role="group" aria-label="Category" style="flex-wrap:wrap">${TCATS.map(x=>`<button data-act="tcat" data-c="${x}" aria-pressed="${cat===x}">${x}</button>`).join('')}</div></div>
-    <div class="tgrid">${tpls.map(t=>`<div class="tcard"><span class="lbl">${esc(t.cat)}</span><h3>${esc(t.name)}</h3><p class="small">${esc(t.desc)}</p><p class="small muted">${esc(ruleText(t.wid==='pick'?{...t,wid:todaysPick().id}:t))}</p><button class="btn sm pri" data-act="tpl" data-i="${t.i}">Start this challenge</button></div>`).join('')}</div>
-  </div>
-  <div class="grid g2">
-    <form class="panel stack" data-form="contest" id="cform">
-      <h2>${D.tpl?'Start: '+esc(D.name):'Make your own challenge'}</h2>
-      ${D.tpl?`<div class="note"><span>${esc(D.desc)}<br><span class="muted small">${esc(ruleText(D))}</span></span></div><button type="button" class="btn ghost sm" data-act="tplclear" style="align-self:flex-start;padding-left:0">Make a custom challenge instead</button>`:''}
+function newChallengePanel(){
+  const D=UI.contestDraft; const cat=UI.tcat||'All'; const tpls=TEMPLATES.filter(t=>cat==='All'||t.cat===cat);
+  if(D) return `<form class="panel stack" data-form="contest" id="cform">
+      <button type="button" class="backlink" data-act="tplclear" style="align-self:flex-start">‹ Back to challenges</button>
+      <h2>${D.tpl?esc(D.name):'Make your own challenge'}</h2>
+      ${D.tpl?`<p class="small">${esc(D.desc)}</p><p class="small muted">${esc(ruleText(D))}</p>`:''}
       <label class="f">Challenge name<input type="text" id="cn" required maxlength="40" placeholder="e.g. 30-Day Swing Club" value="${esc(D.name)}"></label>
       ${D.tpl?'':`<div class="row" style="gap:10px">
         <label class="f" style="flex:1 1 160px">Ranked by<select id="cm">
-          <option value="sessions" ${D.metric==='sessions'?'selected':''}>Sessions completed</option>
+          <option value="sessions" ${D.metric==='sessions'?'selected':''}>Workouts completed</option>
           <option value="minutes" ${D.metric==='minutes'?'selected':''}>Minutes trained</option>
           <option value="streak" ${D.metric==='streak'?'selected':''}>Longest streak</option>
           ${D.wid?`<option value="workout" selected>Completions of ${esc(W(D.wid).name)}</option>`:''}
@@ -1489,14 +1476,51 @@ function vFriends(){
         <label class="f" style="flex:1 1 100px">Length<select id="cd">${[7,14,21,30].map(n=>`<option value="${n}" ${D.days===n?'selected':''}>${n} days</option>`).join('')}</select></label>
         <label class="f" style="flex:1 1 100px">Goal (optional)<input type="number" id="ct" min="1" max="100000" placeholder="None"></label>
       </div>`}
-      <label class="f">Stakes (optional)<input type="text" id="cs" maxlength="60" placeholder="e.g. Loser picks next month's workout" value="${esc(D.stake||'')}"></label>
-      ${on?'<p class="small muted">Your friends will see this challenge and can join it.</p>':''}
+      <label class="f">Stakes (optional)<input type="text" id="cs" maxlength="60" placeholder="e.g. Loser buys coffee" value="${esc(D.stake||'')}"></label>
+      <p class="small muted">${signedIn()?'Your friends will see it and can join.':'Create an account so friends can join you.'}</p>
       <button class="btn pri" type="submit">Start challenge</button>
-    </form>
+    </form>`;
+  return `<div class="panel">
+      <div class="row between"><h2>New challenge</h2><button class="backlink" data-act="newchal" data-on="0">Close</button></div>
+      <p class="small muted" style="margin:4px 0 12px">Pick one of ${TEMPLATES.length}, or <button class="backlink" style="color:var(--accent);text-decoration:underline" data-act="customchal">make your own</button>.</p>
+      <div class="seg" role="group" aria-label="Category" style="flex-wrap:wrap;margin-bottom:12px">${TCATS.map(x=>`<button data-act="tcat" data-c="${x}" aria-pressed="${cat===x}">${x}</button>`).join('')}</div>
+      <div class="tgrid">${tpls.map(t=>`<div class="tcard"><span class="lbl">${esc(t.cat)}</span><h3>${esc(t.name)}</h3><p class="small">${esc(t.desc)}</p><button class="btn sm pri" data-act="tpl" data-i="${t.i}">Choose</button></div>`).join('')}</div>
+    </div>`;
+}
+function vFriends(){
+  const on=signedIn(); const me=uid();
+  if(UI.newChal || UI.contestDraft) return `<div class="head"><div><h1>${UI.contestDraft?'Start a challenge':'Challenges'}</h1></div></div>${newChallengePanel()}`;
+  const mine=[...(on?CL.chals.filter(c=>c.joined):[]),...S.contests];
+  const open=on?CL.chals.filter(c=>!c.joined&&contestDays(c).left>0&&c.owner!==me):[];
+  const sub = on ? `You're <b class="handle" style="font-size:15px;color:var(--ink)">@${esc(CL.profile.username)}</b> <button class="backlink" data-act="copy" data-text="@${esc(CL.profile.username)}">Copy</button>` : 'Train together and keep each other going.';
+  let account='';
+  if(sb && !CL.user){
+    account = UI.showAuth ? `<div style="margin-bottom:16px">${authPanel(UI.authMode||'signup')}<button class="backlink" data-act="hideauth" style="margin-top:10px">Not now</button></div>`
+      : `<div class="panel" style="margin-bottom:16px"><h3>Add friends and compete for real</h3><p class="small muted" style="margin:4px 0 12px">A free account gives you a username, real leaderboards with friends and a backup of your workouts.</p>
+         <div class="row"><button class="btn pri" data-act="showauth" data-m="signup">Create free account</button><button class="btn" data-act="showauth" data-m="signin">Sign in</button></div></div>`;
+  } else if(CL.user && !CL.profile){
+    account = CL.loaded ? `<form class="panel stack" data-form="username" style="margin-bottom:16px"><h2>Pick your username</h2><p class="small muted">Friends add you by this name.</p><label class="f">Username<input id="un" type="text" maxlength="20" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="e.g. mike_swings"></label><button class="btn pri" type="submit">Save username</button></form>`
+      : `<div class="panel slim" style="margin-bottom:16px"><p class="muted">${CL.offline?"You're offline. Your friends will appear when you reconnect.":'Signing you in…'}</p>${CL.offline?'<button class="btn sm" data-act="refresh">Retry</button>':''}</div>`;
+  }
+  const reqs = on&&CL.incoming.length ? `<div class="panel" style="margin-bottom:16px"><span class="lbl">Friend requests</span>${CL.incoming.map(id=>`<div class="rowitem">${avatar(id)}<div class="who"><b>${esc(pname(id))}</b><span class="handle">${esc(phandle(id))}</span></div><button class="btn pri sm" data-act="faccept" data-id="${id}">Accept</button><button class="btn ghost sm" data-act="fdecline" data-id="${id}" aria-label="Decline">✕</button></div>`).join('')}</div>` : '';
+  const feed=CL.acts.slice(0,15).map(a=>`<div class="rowitem"><div class="who"><span><b style="display:inline">${esc(pname(a.user_id))}</b> ${esc(a.title.replace(/^(Finished|Started|Joined)/,m=>m.toLowerCase()))}${a.minutes?` · ${a.minutes} min`:''}</span></div><span class="small muted" style="white-space:nowrap">${agoTxt(a.created_at)}</span></div>`).join('');
+  return `
+  <div class="head"><div><h1>Friends</h1><p class="sub">${sub}</p></div><button class="btn pri" data-act="invite">Invite friends</button></div>
+  ${on&&CL.offline?`<p class="small muted" style="margin:-6px 0 12px">Offline. Showing your last update.</p>`:''}
+  ${account}${reqs}
+  ${open.length?`<div class="sec"><h2>Join a friend's challenge</h2></div><div class="grid g2">${open.map(c=>`<div class="panel"><div class="row between"><h3>${esc(c.name)}</h3><span class="small muted">${contestDays(c).left} days left</span></div><p class="small muted" style="margin:4px 0 10px">Started by ${esc(pname(c.owner))} · ${esc(metricName(c))}${c.stake?` · Stakes: ${esc(c.stake)}`:''}</p><button class="btn pri sm" data-act="cjoin" data-id="${c.id}">Join</button></div>`).join('')}</div>`:''}
+  <div class="sec"><h2>Your challenges</h2><button class="btn sm" data-act="newchal" data-on="1">+ New challenge</button></div>
+  <div class="grid g2">${mine.length?mine.map(challengeCard).join(''):`<div class="empty">No challenges yet. Tap <b>New challenge</b> to pick one${on?' your friends can join':''}.</div>`}</div>
+  ${on?`<div class="grid g2" style="margin-top:16px">
     <div class="panel">
-      <h2>${on?'Your recent activity':'Activity'}</h2><div class="feed" style="margin-top:8px">${localFeed||'<p class="small muted" style="padding:8px 0">Your finished workouts, challenges and invites will show here.</p>'}</div>
+      <div class="row between"><h2>Friends <span class="muted">(${CL.friends.length})</span></h2>${CL.loading?'<span class="small muted">Updating…</span>':`<button class="backlink" data-act="refresh">Refresh</button>`}</div>
+      <form class="row" data-form="addfriend" style="gap:8px;margin:10px 0 4px;flex-wrap:nowrap"><input id="af" type="text" maxlength="21" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Add by username" aria-label="Friend's username" style="flex:1;min-width:0" value="${esc(UI.addFriend||'')}"><button class="btn pri" type="submit">Add</button></form>
+      ${CL.friends.map(id=>`<div class="rowitem">${avatar(id)}<div class="who"><b>${esc(pname(id))}</b><span class="small muted">${thisWeekCount(id)} this week · ${lastSeen(id)}</span></div><button class="backlink" data-act="fremove" data-id="${id}">Remove</button></div>`).join('')}
+      ${CL.outgoing.map(id=>`<div class="rowitem">${avatar(id)}<div class="who"><b>${esc(pname(id))}</b><span class="small muted">Request sent</span></div><button class="backlink" data-act="fcancel" data-id="${id}">Cancel</button></div>`).join('')}
+      ${!CL.friends.length&&!CL.outgoing.length?'<p class="small muted" style="padding:8px 0 0">No friends yet. Tap <b>Invite friends</b>, then add them by username once they sign up.</p>':''}
     </div>
-  </div>`;
+    <div class="panel"><h2>Activity</h2>${feed||'<p class="small muted" style="padding:8px 0 0">Workouts and challenges from you and your friends show up here.</p>'}</div>
+  </div>`:''}`;
 }
 
 /* ---------- Progress ---------- */
@@ -1570,11 +1594,12 @@ function vProgress(){
       <button class="btn pri" type="submit">Save</button>
     </div>
   </form>
-  <div style="margin-top:16px">${gearPanel()}</div>`;
+  <details class="panel fold" style="margin-top:16px"><summary>Gear guide</summary><div style="margin-top:12px">${gearPanel()}</div></details>`;
 }
 function accountPanel(){
   if(!sb) return '';
-  if(!signedIn()) return `<div class="panel" style="margin-bottom:16px"><div class="row between"><div><h3>Back up your training</h3><p class="small muted" style="margin-top:2px">Create a free account so a new phone never wipes your history, and so friends can find you.</p></div><button class="btn pri" data-act="nav" data-v="friends">${CL.user?'Finish setup':'Create account'}</button></div></div>`;
+  if(CL.user && !CL.profile) return `<div class="panel slim" style="margin-bottom:16px"><p class="muted">${CL.offline?"You're offline. Your account will load when you reconnect.":'Signing you in…'}</p></div>`;
+  if(!signedIn()) return `<div class="panel slim" style="margin-bottom:16px"><div><h3>Back up your workouts</h3><p class="small muted" style="margin-top:2px">A free account keeps your history safe if you change phones.</p></div><button class="btn sm pri" data-act="showauth" data-m="signup" data-go="1">Create account</button></div>`;
   const bk=S.lastBackup?`Backed up ${agoTxt(S.lastBackup)}`:'Backing up…';
   return `<div class="panel stack" style="margin-bottom:16px">
     <div class="row between"><div><h3>Your account</h3><p class="small muted" style="margin-top:2px"><b class="handle" style="font-size:14px">@${esc(CL.profile.username)}</b> · ${esc(CL.user.email||'')} · ${bk}</p></div>
@@ -1828,6 +1853,10 @@ const ACT={
   hasbell:()=>{ S.prefs.hasBell=true; save(); route(); toast('Kettlebell workouts are back on your Today screen'); },
   invite:b=>{ const c=b.dataset.c; const me=signedIn()?` Add me: @${CL.profile.username}.`:''; shareText(`${c?`Join my "${c}" challenge on BellForge!`:"I'm training with BellForge: kettlebell workouts with muscle maps, classic workouts and challenges."}${me} Get it here:`,'Invite friends to BellForge',()=>{ S.invites=(S.invites||0)+1; S.feed.unshift({t:Date.now(),txt:'You shared an invite'}); save(); route(); }); },
   shareworkout:()=>{ const h=S.history[S.history.length-1]; if(!h) return; shareText(`I just finished ${h.name||'a workout'} on BellForge${h.rounds?`: ${h.rounds} rounds`:h.secs?` in ${mmssLong(h.secs)}`:''}. ${streak()>1?`${streak()}-day streak. `:''}${signedIn()?`Add me: @${CL.profile.username}. `:''}Train with me:`,'Share your workout'); },
+  showauth:b=>{ UI.showAuth=true; UI.authMode=b.dataset.m; UI.authErr=''; if(b.dataset.go){ location.hash='friends'; } else route(); },
+  hideauth:()=>{ UI.showAuth=false; UI.authErr=''; route(); },
+  newchal:b=>{ UI.newChal=b.dataset.on==='1'; UI.contestDraft=null; route(); },
+  customchal:()=>{ UI.contestDraft={name:'',metric:'sessions',days:7,stake:''}; route(); },
   setupsignin:()=>{ UI.setupSignin=true; UI.authErr=''; route(); },
   setupback:()=>{ UI.setupSignin=false; UI.authErr=''; route(); },
   authmode:b=>{ UI.authMode=b.dataset.m; UI.authErr=''; route(); },
@@ -1838,15 +1867,15 @@ const ACT={
   fremove:b=>{ if(UI.confirmRemove===b.dataset.id){ UI.confirmRemove=null; dropFriend(b.dataset.id,'Friend removed'); } else { UI.confirmRemove=b.dataset.id; b.textContent='Tap to confirm'; } },
   cjoin:b=>joinCloud(b.dataset.id),
   cleave:b=>leaveCloud(b.dataset.id),
-  signout:async()=>{ try{ await doBackup(); await sb.auth.signOut(); }catch(e){} Object.assign(CL,{user:null,profile:null,friends:[],incoming:[],outgoing:[],acts:[],chals:[],loaded:false}); route(); toast('Signed out. Your workouts stay on this phone.'); },
+  signout:async()=>{ try{ await doBackup(); await sb.auth.signOut(); }catch(e){} clearCloud(); route(); toast('Signed out. Your workouts stay on this phone.'); },
   delacct:()=>{ UI.confirmDelete=true; route(); },
   delcancel:()=>{ UI.confirmDelete=false; route(); },
   delacct2:async()=>{ const {error}=await sb.rpc('delete_my_account'); if(error) return toast(friendlyErr(error));
-    try{ await sb.auth.signOut({scope:'local'}); }catch(e){} Object.assign(CL,{user:null,profile:null,friends:[],incoming:[],outgoing:[],acts:[],chals:[],loaded:false}); delete S.restoredFor; delete S.lastBackup; UI.confirmDelete=false; save(); route(); toast('Your account was deleted. Workouts on this phone are still here.'); },
+    try{ await sb.auth.signOut({scope:'local'}); }catch(e){} clearCloud(); delete S.restoredFor; delete S.lastBackup; UI.confirmDelete=false; save(); route(); toast('Your account was deleted. Workouts on this phone are still here.'); },
   cquit:b=>{ S.contests=S.contests.filter(c=>c.id!==b.dataset.id); save(); route(); toast('Challenge removed'); },
-  tcat:b=>{ UI.tcat=b.dataset.c; route(); const el=document.querySelector('.tgrid'); if(el) el.closest('.panel').scrollIntoView(); },
-  tpl:b=>{ const t=TEMPLATES[+b.dataset.i]; UI.contestDraft={...t,tpl:true,wid:t.wid==='pick'?todaysPick().id:t.wid,stake:''}; route(); const f=$('#cform'); if(f){ f.scrollIntoView({behavior:REDUCE?'auto':'smooth'}); } },
-  tplclear:()=>{ UI.contestDraft=null; route(); const f=$('#cform'); if(f) f.scrollIntoView(); },
+  tcat:b=>{ const y=window.scrollY; UI.tcat=b.dataset.c; route(); window.scrollTo(0,y); },
+  tpl:b=>{ const t=TEMPLATES[+b.dataset.i]; UI.contestDraft={...t,tpl:true,wid:t.wid==='pick'?todaysPick().id:t.wid,stake:''}; UI.newChal=true; route(); },
+  tplclear:()=>{ UI.contestDraft=null; route(); },
   penroll:b=>{ S.enrolled[b.dataset.p]={start:iso(TODAY),done:[]}; save(); location.hash='p-'+b.dataset.p; if(location.hash==='#p-'+b.dataset.p) route(); toast('Program started. Your first session is ready.'); },
   pquit:b=>{ delete S.enrolled[b.dataset.p]; save(); route(); },
   pstart:b=>{ const p=PM[b.dataset.p], k=+b.dataset.k; const w0=W(p.sched[k]); const {w,swapped}=withSwaps(w0); loadTimer(w===w0?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); T.prog={pid:p.id,k}; location.hash='timer'; },
@@ -1886,7 +1915,7 @@ document.addEventListener('submit',e=>{
     else { const days=+$('#cd').value, metric=$('#cm').value, tg=+$('#ct').value;
       c={id:'c'+Date.now(),name,metric,start:iso(TODAY),end:iso(addDays(TODAY,days-1)),members,stake:$('#cs').value.trim(),code};
       if(tg>0) c.target=tg; if(metric==='workout' && D.wid) c.wid=D.wid; }
-    S.feed.unshift({t:Date.now(),txt:`You started ${name}`}); UI.contestDraft=null; UI.lastInvite=null;
+    S.feed.unshift({t:Date.now(),txt:`You started ${name}`}); UI.contestDraft=null; UI.newChal=false; UI.lastInvite=null;
     if(signedIn()){ createCloudChallenge(c).then(()=>{ save(); route(); toast('Challenge started. Your friends can join it now.'); }).catch(err=>{ S.contests.unshift(c); save(); route(); toast(friendlyErr(err)+' Saved on this phone instead.'); }); return; }
     S.contests.unshift(c); save(); route(); toast('Challenge started. Create an account so friends can join you.'); }
   if(f==='auth'){ doAuth(e.target.dataset.mode); return; }
