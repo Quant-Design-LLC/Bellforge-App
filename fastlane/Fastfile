@@ -1,0 +1,24 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Fetch (or create on first run) the App Store signing cert and BellForge profile via match"
+  lane :certs do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APPSTORE_API_KEY_ID"],
+      issuer_id: ENV["APPSTORE_API_ISSUER_ID"],
+      key_content: ENV["APPSTORE_API_KEY_P8"],
+      is_key_content_base64: false,
+      in_house: false
+    )
+
+    match(
+      type: "appstore",
+      app_identifier: "com.quants.bellforge",
+      api_key: api_key,
+      # First run must be false so match can add the BellForge profile to the
+      # shared upkeepiq-match repo (it reuses the existing Distribution cert).
+      # Flip to true after the first successful run.
+      readonly: false
+    )
+  end
+end

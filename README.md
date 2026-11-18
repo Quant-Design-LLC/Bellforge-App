@@ -2,7 +2,7 @@
 
 Kettlebell workouts with muscle maps, a session timer, multi-week programs, friend challenges, a bodyweight bonus section, a gear shop and monthly meal plans.
 
-The app is a web app (`www/`) packaged for iOS and Android with [Capacitor 8](https://capacitorjs.com/), the same Capacitor version as ChoreQuest. Builds can run on Xcode Cloud or GitHub Actions on every push to `main`.
+The app is a web app (`www/`) packaged for iOS and Android with [Capacitor 8](https://capacitorjs.com/), the same Capacitor version as ChoreQuest. iOS builds run on GitHub Actions (started manually) and upload to TestFlight.
 
 - **App ID / bundle ID:** `com.quants.bellforge` (change it in `capacitor.config.json`, `android/app/build.gradle` and in Xcode if your store listing uses a different ID)
 - **App name:** BellForge
@@ -22,44 +22,33 @@ The app is a web app (`www/`) packaged for iOS and Android with [Capacitor 8](ht
 
 ## Automated builds
 
-Pick whichever matches how you already ship. Delete the one you don't use.
+### iOS: GitHub Actions to TestFlight (same setup as ChoreQuest)
 
-### Option A: Xcode Cloud (iOS)
+`.github/workflows/ios-testflight.yml` builds, signs and uploads to TestFlight. It runs only when you start it:
+**GitHub > Actions > "iOS Build + TestFlight" > Run workflow**.
 
-`ios/App/ci_scripts/ci_post_clone.sh` installs Node, runs `npm ci` and `npx cap sync ios` after Xcode Cloud clones the repo. Capacitor's Swift packages live in `node_modules`, so the build fails without this step.
+Signing uses fastlane match with the shared `Quant-Design-LLC/upkeepiq-match` repo (`fastlane/Fastfile`,
+`fastlane/Matchfile`), exactly like ChoreQuest. The version comes from `package.json`; the build number is the
+workflow run number.
 
-1. Open `ios/App/App.xcodeproj` in Xcode and choose **Product > Xcode Cloud > Create Workflow**.
-2. Connect the GitHub repo when asked.
-3. Start condition: **Branch changes on `main`**. Action: **Archive (iOS)**. Post-action: **TestFlight Internal Testing**.
-4. Push to `main`. Xcode Cloud sets the build number on its own.
+Repository secrets (**Settings > Secrets and variables > Actions**), same names and values as ChoreQuest:
 
-### Option B: GitHub Actions
-
-Both workflows run on every push to `main`, and can also be started by hand from the **Actions** tab.
-
-**`ios-testflight.yml`** builds, signs and uploads to TestFlight. Add these repository secrets (**Settings > Secrets and variables > Actions**):
-
-| Secret | Where to get it |
+| Secret | What it is |
 |---|---|
-| `ASC_KEY_ID` | App Store Connect > Users and Access > Integrations > App Store Connect API (Admin or App Manager key) |
-| `ASC_ISSUER_ID` | Same page, shown above the key list |
-| `ASC_KEY_P8_BASE64` | The downloaded `AuthKey_XXXX.p8`, base64-encoded: `base64 -i AuthKey_XXXX.p8 \| pbcopy` |
-| `APPLE_TEAM_ID` | developer.apple.com > Membership details |
+| `APPSTORE_API_KEY_P8` | Full text of the App Store Connect API key `.p8` file, including the BEGIN/END lines |
+| `APPSTORE_API_KEY_ID` | The key's ID |
+| `APPSTORE_API_ISSUER_ID` | Issuer ID (App Store Connect > Users and Access > Integrations) |
+| `APPSTORE_TEAM_ID` | `F9GFFNU83K` |
+| `MATCH_PASSWORD` | Passphrase for the match repo |
+| `MATCH_GIT_URL` | Git URL of `upkeepiq-match`, with access token |
 
-Signing is automatic: Xcode creates or reuses the distribution certificate and profile through the API key.
+One-time Apple setup: register the bundle ID `com.quants.bellforge` (developer.apple.com > Identifiers) and
+create the app in App Store Connect with that bundle ID. After the first successful run, set `readonly: true`
+in `fastlane/Fastfile`.
 
-**`android-release.yml`** builds a signed `.aab` and attaches it to the run as an artifact. Add:
+### Android: GitHub Actions (optional)
 
-| Secret | Value |
-|---|---|
-| `ANDROID_KEYSTORE_BASE64` | BellForge's upload keystore, base64-encoded: `base64 -i upload.jks \| pbcopy` |
-| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
-| `ANDROID_KEY_ALIAS` | Key alias |
-| `ANDROID_KEY_PASSWORD` | Key password |
-
-Use a new keystore for BellForge, not another app's. To publish straight to Play internal testing, add a `PLAY_SERVICE_ACCOUNT_JSON` secret and uncomment the last step of the workflow.
-
-Version numbers: iOS build number and Android `versionCode` are the GitHub run number + 10, so each build is higher than the last.
+`android-release.yml` builds a signed AAB when started manually. Local builds from Android Studio are the usual path.
 
 ## Building locally (optional)
 

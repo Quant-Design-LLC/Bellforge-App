@@ -1,80 +1,225 @@
-name: iOS → TestFlight
+name: iOS Build + TestFlight
+
+# Same signing setup as ChoreQuest: fastlane match (shared upkeepiq-match repo),
+# manual Distribution signing, App Store Connect API key.
+# Run it from GitHub: Actions → "iOS Build + TestFlight" → Run workflow.
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      upload_to_testflight:
+        description: 'Upload to TestFlight after build'
+        type: boolean
+        default: true
+
+concurrency:
+  group: ios-build
+  cancel-in-progress: false
 
 jobs:
-  testflight:
-    runs-on: macos-15
-    timeout-minutes: 45
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
     env:
-      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      SCHEME: App
+      BUNDLE_ID: com.quants.bellforge
+      PROJECT: ios/App/App.xcodeproj
+      CONFIGURATION: Release
+      ARCHIVE_PATH: ${{ github.workspace }}/build/App.xcarchive
+      EXPORT_PATH: ${{ github.workspace }}/build/export
+      EXPORT_OPTIONS_PATH: ${{ github.workspace }}/build/ExportOptions.plist
+      API_KEY_FILENAME: AuthKey_${{ secrets.APPSTORE_API_KEY_ID }}.p8
+
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install and sync Capacitor
+      - name: Verify required secrets are set
+        env:
+          APPSTORE_API_KEY_P8: ${{ secrets.APPSTORE_API_KEY_P8 }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          APPSTORE_TEAM_ID: ${{ secrets.APPSTORE_TEAM_ID }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
         run: |
-          npm ci
-          npx cap sync ios
+          missing=()
+          [ -z "$APPSTORE_API_KEY_P8" ] && missing+=("APPSTORE_API_KEY_P8")
+          [ -z "$APPSTORE_API_KEY_ID" ] && missing+=("APPSTORE_API_KEY_ID")
+          [ -z "$APPSTORE_API_ISSUER_ID" ] && missing+=("APPSTORE_API_ISSUER_ID")
+          [ -z "$APPSTORE_TEAM_ID" ] && missing+=("APPSTORE_TEAM_ID")
+          [ -z "$MATCH_PASSWORD" ] && missing+=("MATCH_PASSWORD")
+          [ -z "$MATCH_GIT_URL" ] && missing+=("MATCH_GIT_URL")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "FATAL: Missing required repository secrets:"
+            for s in "${missing[@]}"; do echo "  - $s"; done
+            echo "Add them at https://github.com/Quant-Design-LLC/Bellforge-App/settings/secrets/actions"
+            exit 1
+          fi
+          echo "All 6 required secrets present"
 
-      - name: Select latest Xcode
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select latest stable Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
 
-      - name: Save App Store Connect API key
-        run: |
-          mkdir -p ~/private_keys
-          echo "${{ secrets.ASC_KEY_P8_BASE64 }}" | base64 --decode > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
 
-      - name: Set build number
-        working-directory: ios/App
-        run: agvtool new-version -all $(( ${{ github.run_number }} + 10 ))
+      - name: Setup Ruby and fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Install JS dependencies and sync Capacitor
+        run: |
+          npm ci
+          npx cap sync ios
+
+      - name: Set version and build number
+        # Version comes from package.json (e.g. 1.0.15); the build number is the
+        # workflow run number, so every TestFlight upload is unique.
+        run: |
+          set -e
+          VERSION=$(node -p "require('./package.json').version")
+          BUILD=${{ github.run_number }}
+          PBXPROJ="$PROJECT/project.pbxproj"
+          sed -i.bak -e "s/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = $VERSION;/g" \
+                     -e "s/CURRENT_PROJECT_VERSION = [^;]*;/CURRENT_PROJECT_VERSION = $BUILD;/g" "$PBXPROJ"
+          echo "Version $VERSION, build $BUILD"
+          grep -nE 'MARKETING_VERSION|CURRENT_PROJECT_VERSION' "$PBXPROJ"
+
+      - name: Patch Release config for manual signing
+        run: |
+          set -e
+          PBXPROJ="$PROJECT/project.pbxproj"
+          sed -i.bak \
+            -e 's|CODE_SIGN_IDENTITY = "iPhone Developer";|CODE_SIGN_IDENTITY = "Apple Distribution";|g' \
+            -e 's|CODE_SIGN_IDENTITY = "Apple Development";|CODE_SIGN_IDENTITY = "Apple Distribution";|g' \
+            -e 's|CODE_SIGN_STYLE = Automatic;|CODE_SIGN_STYLE = Manual;|g' \
+            "$PBXPROJ"
+          grep -nE 'CODE_SIGN_(IDENTITY|STYLE)' "$PBXPROJ" || true
+
+      - name: Resolve Swift Package Manager dependencies
+        run: xcodebuild -resolvePackageDependencies -project "$PROJECT" -scheme "$SCHEME"
+
+      - name: Create dedicated CI keychain
+        env:
+          CI_KEYCHAIN_PASSWORD: temp-ci-keychain-bellforge
+        run: |
+          set -e
+          KEYCHAIN_PATH="$RUNNER_TEMP/ci.keychain-db"
+          security create-keychain -p "$CI_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$CI_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" ~/Library/Keychains/login.keychain-db
+          security default-keychain -s "$KEYCHAIN_PATH"
+          echo "CI_KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+
+      - name: Install cert and provisioning profile via fastlane match
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_KEYCHAIN_NAME: ${{ env.CI_KEYCHAIN_PATH }}
+          MATCH_KEYCHAIN_PASSWORD: temp-ci-keychain-bellforge
+          APPSTORE_API_KEY_P8: ${{ secrets.APPSTORE_API_KEY_P8 }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: |
+          set -e
+          bundle exec fastlane certs
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "temp-ci-keychain-bellforge" "$CI_KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$CI_KEYCHAIN_PATH"
+
+      - name: Write App Store Connect API key
+        env:
+          APPSTORE_API_KEY_P8: ${{ secrets.APPSTORE_API_KEY_P8 }}
+        run: |
+          set -e
+          mkdir -p ~/.appstoreconnect/private_keys
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/${{ env.API_KEY_FILENAME }}"
+          printf '%s' "$APPSTORE_API_KEY_P8" | tr -d '\r' > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          head -1 "$KEY_PATH" | grep -q "BEGIN PRIVATE KEY" || { echo "FATAL: APPSTORE_API_KEY_P8 must start with -----BEGIN PRIVATE KEY-----"; exit 1; }
+          tail -1 "$KEY_PATH" | grep -q "END PRIVATE KEY" || { echo "FATAL: APPSTORE_API_KEY_P8 must end with -----END PRIVATE KEY-----"; exit 1; }
 
       - name: Archive
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          APPSTORE_TEAM_ID: ${{ secrets.APPSTORE_TEAM_ID }}
         run: |
-          xcodebuild archive \
-            -project ios/App/App.xcodeproj \
-            -scheme App \
-            -configuration Release \
+          mkdir -p build
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
             -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/BellForge.xcarchive" \
+            -archivePath "$ARCHIVE_PATH" \
             -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/${{ env.API_KEY_FILENAME }} \
+            -authenticationKeyID "$APPSTORE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_API_ISSUER_ID" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$APPSTORE_TEAM_ID" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="match AppStore $BUNDLE_ID" \
+            archive
 
-      - name: Export and upload to TestFlight
+      - name: Create ExportOptions.plist
+        env:
+          APPSTORE_TEAM_ID: ${{ secrets.APPSTORE_TEAM_ID }}
         run: |
-          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          cat > "$EXPORT_OPTIONS_PATH" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>method</key><string>app-store-connect</string>
-            <key>destination</key><string>upload</string>
-            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
-            <key>signingStyle</key><string>automatic</string>
-            <key>manageAppVersionAndBuildNumber</key><false/>
+              <key>method</key><string>app-store-connect</string>
+              <key>signingStyle</key><string>manual</string>
+              <key>teamID</key><string>$APPSTORE_TEAM_ID</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>$BUNDLE_ID</key><string>match AppStore $BUNDLE_ID</string>
+              </dict>
+              <key>uploadSymbols</key><true/>
+              <key>destination</key><string>export</string>
           </dict>
           </plist>
           PLIST
+
+      - name: Export IPA
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: |
           xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/BellForge.xcarchive" \
-            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
-            -exportPath "$RUNNER_TEMP/export" \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist "$EXPORT_OPTIONS_PATH" \
             -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/${{ env.API_KEY_FILENAME }} \
+            -authenticationKeyID "$APPSTORE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_API_ISSUER_ID"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BellForge-iOS-ipa-${{ github.run_number }}
+          path: ${{ env.EXPORT_PATH }}/*.ipa
+          retention-days: 14
+
+      - name: Upload to TestFlight
+        if: ${{ inputs.upload_to_testflight }}
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: |
+          IPA=$(ls "$EXPORT_PATH"/*.ipa | head -1)
+          echo "Uploading $IPA to App Store Connect..."
+          xcrun altool --upload-app --type ios --file "$IPA" \
+            --apiKey "$APPSTORE_API_KEY_ID" --apiIssuer "$APPSTORE_API_ISSUER_ID"
