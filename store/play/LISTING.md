@@ -179,6 +179,8 @@ Paste only the block below into the release notes box.
 <en-US>
 New in this update
 - New BellForge icon and splash screen
+- Fits every phone screen properly, including smaller iPhones
+- No more zooming in when you type in a text box
 </en-US>
 ```
 
