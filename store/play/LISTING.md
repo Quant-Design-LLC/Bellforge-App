@@ -178,8 +178,10 @@ Paste only the block below into the release notes box.
 ```
 <en-US>
 New in this update
-- Compact workout timer: the countdown, the exercise and its form tips fit on one screen
-- Choose your rest: Auto (by your level) or 5 to 45 seconds between moves, and 30 seconds to 2 minutes between rounds (Progress > Settings)
+- Stretch & mobility: 8 guided sessions (warm-up, cool-down, hips, upper back, rest-day recovery and more) from 12 new stretches with muscle maps
+- Levels, XP and 20 badges: earn XP every session, level up from Rookie to Master Smith, and share badges with friends
+- Compact workout timer: the countdown and the exercise fit on one screen
+- Choose your rest between moves and rounds, or let it follow your level
 - +15s button during any rest
 </en-US>
 ```

@@ -178,6 +178,14 @@ body.setup-mode .app{grid-template-columns:1fr}
 .lb.me{font-weight:700}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block}
 [hidden]{display:none !important}
+/* badges */
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:14px 10px;margin-top:12px}
+.badge{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
+.badge b{font-size:12.5px;line-height:1.2}
+.badge span{font-size:11px;color:var(--muted);line-height:1.25}
+.badge:not(.on) svg{opacity:.75}
+.lvchip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:3px 10px;margin-left:6px;border:0;cursor:pointer;vertical-align:1px}
+.reward{display:flex;gap:12px;align-items:center;background:var(--accent-soft);border-radius:var(--r);padding:12px 14px;margin-top:12px}
 /* 1.0.14 cleaner layout */
 .big{font-family:var(--display);font-size:38px;font-weight:700;line-height:1;margin-top:4px}
 .big small{font-size:17px;color:var(--muted);font-weight:600}
@@ -583,7 +591,8 @@ const FMT = {
   ladder:{name:'Ladder',desc:'Reps climb each rung. Rest between rungs.'},
   tabata:{name:'Tabata',desc:'20 seconds on, 10 seconds off, 8 rounds per exercise.'},
   complex:{name:'Complex',desc:'One bell, no setting it down: flow from move to move, then rest.'},
-  classic:{name:'Classic',desc:''}
+  classic:{name:'Classic',desc:''},
+  mobility:{name:'Mobility',desc:''}
 };
 
 /* ---------- 200 curated workouts, generated deterministically ---------- */
@@ -736,6 +745,54 @@ CLASSIC_DEFS.forEach((d,i)=>{
   WORKOUTS.push(w);
 });
 const CLASSICS=WORKOUTS.filter(w=>w.classic);
+
+/* ---------- Stretch & mobility ----------
+   Stretch moves are added only AFTER the 300 generated workouts exist, so the generator's seeded picks
+   (and everyone's saved workouts, history and programs) stay exactly the same. */
+const MOB_EX=[
+ {id:'h90',name:'90/90 Hip Switch',secs:60,cues:['Sit tall with both knees bent to 90 degrees','Rotate both knees to the other side without using your hands if you can','Lean gently over the front shin for a deeper stretch'],miss:['Rounding the back to get lower','Forcing the knees down']},
+ {id:'wgs',name:"World's Greatest Stretch",secs:30,sided:true,cues:['Step into a long lunge, both hands inside the front foot','Drop the inside elbow toward the ankle','Rotate and reach the same arm to the ceiling, eyes follow the hand'],miss:['Back knee bent and hips sagging','Rushing the rotation']},
+ {id:'hfs',name:'Half-Kneeling Hip Flexor Stretch',secs:30,sided:true,cues:['Back knee down, front foot flat, torso tall','Squeeze the glute of the back leg and tuck the hips under','Reach the same-side arm overhead and lean slightly away'],miss:['Arching the lower back instead of tucking the hips','Lunging too far forward']},
+ {id:'pig',name:'Pigeon Stretch',secs:45,sided:true,cues:['Front shin angled across your body, back leg long','Square your hips to the floor','Walk your hands forward and fold over the front leg'],miss:['Hips rolling to one side','Pain in the front knee: bring the heel closer to you']},
+ {id:'gsp',name:'Goblet Squat Pry',secs:45,cues:['Hold a light bell at your chest and sink into a deep squat','Push your knees out with your elbows','Shift gently side to side to open the hips'],miss:['Heels lifting off the floor','Rounding the back at the bottom']},
+ {id:'hms',name:'Hamstring Hinge Stretch',secs:30,sided:true,cues:['Heel forward, toes up, front knee straight','Hinge at the hips with a flat back','Slide your hands down the shin until you feel the stretch'],miss:['Rounding the back to reach lower','Locking the knee hard']},
+ {id:'cc',name:'Cat-Cow',secs:45,cues:['Hands under shoulders, knees under hips','Round your back up and tuck your chin (cat)','Drop your belly and lift your chest (cow), move with your breath'],miss:['Moving only the neck','Holding your breath']},
+ {id:'tob',name:'Open Book',secs:30,sided:true,cues:['Lie on your side with knees bent and stacked','Sweep the top arm over in a wide arc','Let your chest open toward the ceiling, knees stay together'],miss:['Knees sliding apart','Forcing the arm to the floor']},
+ {id:'ttn',name:'Thread the Needle',secs:30,sided:true,cues:['Start on hands and knees','Reach one arm up to open the chest','Slide that arm under your body and rest the shoulder down'],miss:['Hips shifting back','Rushing the reach']},
+ {id:'chp',name:"Child's Pose Reach",secs:60,cues:['Sit your hips back toward your heels','Reach both arms long in front','Walk your hands to each side to stretch your lats'],miss:['Shoulders shrugged up to the ears','Holding your breath']},
+ {id:'ddg',name:'Downward Dog Pedal',secs:45,cues:['Hands and feet down, hips high in an upside-down V','Press one heel down while the other knee bends','Keep your arms long and your back flat'],miss:['Rounded back: bend your knees a little','Weight dumped into the wrists']},
+ {id:'cob',name:'Cobra Stretch',secs:30,cues:['Lie face down with hands under your shoulders','Press up gently, hips stay on the floor','Shoulders down, away from the ears'],miss:['Pushing into pain in the lower back','Shrugging the shoulders']}
+];
+const MOB_MUSC={h90:[['Glutes','Hip rotators'],['Adductors','Hip flexors']],wgs:[['Hip flexors','Hamstrings','Upper back'],['Glutes','Adductors']],hfs:[['Hip flexors','Quads'],['Abs']],pig:[['Glutes','Hip rotators'],['Hip flexors']],gsp:[['Adductors','Glutes'],['Calves','Lower back']],hms:[['Hamstrings'],['Calves','Lower back']],cc:[['Lower back','Upper back'],['Abs']],tob:[['Upper back','Chest'],['Shoulders','Obliques']],ttn:[['Upper back','Rear delts'],['Lats']],chp:[['Lats','Lower back'],['Glutes','Shoulders']],ddg:[['Calves','Hamstrings'],['Shoulders','Lats']],cob:[['Abs','Hip flexors'],['Lower back']]};
+MOB_EX.forEach(e=>{ Object.assign(e,{lv:1,focus:'Mobility',mob:true,unit:'sec',bells:'none'}); e.prim=MOB_MUSC[e.id][0]; e.sec=MOB_MUSC[e.id][1]; e.img='img/'+e.id+'.jpg'; EX.push(e); EXM[e.id]=e; });
+// [name, focus, about, moves as [id, seconds]]
+const MOB_DEFS=[
+ ['Kettlebell Warm-Up','Warm-up','Five minutes to get your hips, back and shoulders ready to swing. Do it before any workout.',[['cc',45],['wgs',30],['gsp',45],['hfs',30],['ddg',30]]],
+ ['Post-Workout Cool-Down','Cool-down','Slow your breathing and stretch the muscles kettlebell work hits hardest.',[['chp',60],['cob',30],['pig',45],['hms',30],['ttn',30]]],
+ ['Hip Opener','Hips','Long holds for tight hips: rotation, flexors and the deep glute muscles.',[['h90',60],['pig',60],['hfs',45],['gsp',60],['wgs',30]]],
+ ['Upper Back & Shoulders','Upper back','Undo a day at a desk: open the chest, rotate the upper back and free the shoulders.',[['cc',45],['ttn',45],['tob',45],['chp',60],['ddg',45]]],
+ ['Hamstrings & Lower Back','Lower body','Ease tight hamstrings and a stiff lower back, great after a heavy swing day.',[['hms',45],['ddg',60],['cc',45],['chp',60],['cob',30]]],
+ ['Pre-Swing Primer','Warm-up','A fast four-minute primer for hinging and squatting.',[['cc',30],['ddg',30],['gsp',45],['hfs',30]]],
+ ['Rest Day Recovery','Recovery','A gentle full-body session for rest days. It keeps your streak alive without adding fatigue.',[['cc',45],['chp',60],['h90',60],['tob',30],['hms',30],['cob',30]]],
+ ['Full-Body Mobility Flow','Full body','Every stretch in one flowing session, head to toe.',[['cc',45],['ddg',45],['wgs',30],['hfs',30],['pig',45],['h90',60],['gsp',45],['hms',30],['tob',30],['ttn',30],['chp',60],['cob',30]]]
+];
+function mobSteps(moves){
+  const S=[{k:'ready',secs:10,label:'Get ready',ex:moves[0][0]}];
+  moves.forEach(([id,secs],i)=>{ const e=EXM[id];
+    if(e.sided){ S.push({k:'work',ex:id,secs,label:e.name,target:'Hold · left side'}); S.push({k:'rest',secs:5,label:'Switch sides',ex:id}); S.push({k:'work',ex:id,secs,label:e.name,target:'Hold · right side'}); }
+    else S.push({k:'work',ex:id,secs,label:e.name,target:id==='cc'?'Move slowly with your breath':'Hold and breathe slowly'});
+    if(i<moves.length-1) S.push({k:'rest',secs:8,label:'Next stretch',ex:moves[i+1][0]}); });
+  return S;
+}
+MOB_DEFS.forEach(([name,focus,about,moves],i)=>{
+  const w={id:WORKOUTS.length+1,mob:true,classic:false,bw:false,code:'MB-'+String(i+1).padStart(2,'0'),lv:1,fmt:'mobility',name,focus,about,
+    items:moves.map(([id,secs])=>({ex:id,secs})),gear:[],equip:moves.some(m=>m[0]==='gsp')?'Light bell optional':'No equipment',
+    score:'Breathe slowly and never stretch into pain. A mild pull is enough.'};
+  w.steps=mobSteps(moves); w.secs=w.steps.reduce((a,s)=>a+s.secs,0)-10; w.dur=Math.max(3,Math.round(w.secs/60));
+  WORKOUTS.push(w);
+});
+const MOBILITY=WORKOUTS.filter(w=>w.mob);
+const mobByName=n=>MOBILITY.find(w=>w.name===n);
 const classicByName=n=>CLASSICS.find(w=>w.name===n);
 
 /* ---------- figure rendering ---------- */
@@ -849,7 +906,7 @@ const W = id => WORKOUTS[id-1];
 function streak(){ const days=new Set(S.history.map(h=>h.d)); let d=new Date(TODAY); if(!days.has(iso(d))) d=addDays(d,-1); let n=0; while(days.has(iso(d))){ n++; d=addDays(d,-1);} return n; }
 function weekDays(){ const m=monday(TODAY); return [...Array(7)].map((_,i)=>addDays(m,i)); }
 function sessionsBetween(a,b){ return S.history.filter(h=>h.d>=a && h.d<=b); }
-function todaysPick(){ const lv=S.prefs.level; const pool=WORKOUTS.filter(w=>w.lv===lv&&!w.bw&&!w.classic); return pool[hashStr(iso(TODAY)+lv)%pool.length]; }
+function todaysPick(){ const lv=S.prefs.level; const pool=WORKOUTS.filter(w=>w.lv===lv&&!w.bw&&!w.classic&&!w.mob); return pool[hashStr(iso(TODAY)+lv)%pool.length]; }
 function bwPick(){ const lv=S.prefs.level; const pool=WORKOUTS.filter(w=>w.lv===lv&&w.bw&&!w.gear.length); return pool[hashStr('bw'+iso(TODAY)+lv)%pool.length]; }
 function contestDays(c){ const st=fromIso(c.start), en=fromIso(c.end); const len=Math.round((en-st)/864e5)+1; const el=Math.min(len,Math.max(0,Math.floor((TODAY-st)/864e5)+1)); return {len,el,left:Math.max(0,len-el)}; }
 function friend(id){ return S.friends.find(f=>f.id===id); }
@@ -1004,7 +1061,7 @@ async function cloudLoad(force){
       CL.acts=aa.data||[]; CL.chals=(cc.data||[]).map(chalFromRow);
       const miss=[...new Set(CL.chals.flatMap(c=>[c.owner,...c.members.map(m=>m.id)]).filter(id=>!CL.people[id]))];
       if(miss.length){ const r=await sb.from('profiles').select('id,username,display_name').in('id',miss); (r.data||[]).forEach(p=>CL.people[p.id]=p); }
-      await restoreIfNeeded(); syncScores();
+      await restoreIfNeeded(); syncScores(); celebrate(checkBadges());
     }
     CL.loaded=true; CL.offline=false; saveCloudCache();
   }catch(e){ CL.offline=true; if(!CL.retried){ CL.retried=true; setTimeout(()=>{ CL.retried=false; cloudLoad(true); },8000); } }
@@ -1094,7 +1151,7 @@ async function addFriend(raw){
   CL.outgoing.push(p.id); UI.addFriend=''; route(); toast(`Friend request sent to @${name}`);
 }
 async function acceptFriend(id){ const {error}=await sb.from('friendships').update({status:'accepted'}).eq('requester',id).eq('addressee',uid()); if(error) return toast(friendlyErr(error));
-  CL.incoming=CL.incoming.filter(x=>x!==id); CL.friends.push(id); route(); toast(`You and ${pname(id)} are now friends`); cloudLoad(true); }
+  CL.incoming=CL.incoming.filter(x=>x!==id); CL.friends.push(id); route(); toast(`You and ${pname(id)} are now friends`); celebrate(checkBadges()); cloudLoad(true); }
 async function dropFriend(id,msg){ const me=uid(); const {error}=await sb.from('friendships').delete().or(`and(requester.eq.${me},addressee.eq.${id}),and(requester.eq.${id},addressee.eq.${me})`); if(error) return toast(friendlyErr(error));
   CL.incoming=CL.incoming.filter(x=>x!==id); CL.outgoing=CL.outgoing.filter(x=>x!==id); CL.friends=CL.friends.filter(x=>x!==id); route(); toast(msg); }
 async function createCloudChallenge(c){
@@ -1106,7 +1163,7 @@ async function createCloudChallenge(c){
 }
 async function joinCloud(id){ const c=CL.chals.find(x=>x.id===id); if(!c) return;
   const {error}=await sb.from('challenge_members').insert({challenge_id:id,user_id:uid(),score:0}); if(error) return toast(friendlyErr(error));
-  c.joined=true; c.members.push({id:uid(),score:0}); syncScores(); postActivity(`Joined the ${c.name} challenge`,null,'challenge'); route(); toast(`You're in. Good luck in ${c.name}!`); cloudLoad(true); }
+  c.joined=true; c.members.push({id:uid(),score:0}); syncScores(); postActivity(`Joined the ${c.name} challenge`,null,'challenge'); route(); toast(`You're in. Good luck in ${c.name}!`); setTimeout(()=>celebrate(checkBadges()),1600); cloudLoad(true); }
 async function leaveCloud(id){ const c=CL.chals.find(x=>x.id===id); if(!c) return; const me=uid();
   const alone=c.owner===me && c.members.every(m=>m.id===me);
   const q= alone? sb.from('challenges').delete().eq('id',id) : sb.from('challenge_members').delete().eq('challenge_id',id).eq('user_id',me);
@@ -1119,6 +1176,69 @@ function agoTxt(t){ const s=(Date.now()-new Date(t))/1000; if(s<90) return 'just
 function avatar(id,size){ const n=pname(id)==='You'?(CL.profile&&(CL.profile.display_name||CL.profile.username))||'Me':pname(id); return `<span class="av av-sm" style="width:${size||36}px;height:${size||36}px">${esc(initials(n.replace('@','')))}</span>`; }
 window.addEventListener('focus',()=>cloudLoad(false));
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') cloudLoad(false); });
+
+/* ---------- XP, levels & badges ---------- */
+const xpFor=h=>50+10*Math.min(60,h.min||0);
+const totalXP=()=>S.history.reduce((a,h)=>a+xpFor(h),0);
+function levelFor(xp){ let L=1, acc=0, need=250; while(xp>=acc+need){ acc+=need; L++; need=250*L; } return {L, into:xp-acc, need, toNext:acc+need-xp}; }
+const RANKS=[[1,'Rookie'],[3,'Apprentice'],[6,'Iron'],[10,'Steel'],[15,'Forged'],[20,'Master Smith']];
+const rankFor=L=>RANKS.filter(r=>L>=r[0]).pop()[1];
+function weekRun(){ // best run of consecutive weeks hitting the weekly goal
+  const by={}; S.history.forEach(h=>{ const k=iso(monday(fromIso(h.d))); by[k]=(by[k]||0)+1; });
+  const weeks=Object.keys(by).sort(); let best=0,cur=0,prev=null;
+  weeks.forEach(k=>{ const hit=by[k]>=S.prefs.goal; if(!hit){ cur=0; prev=k; return; } cur=(prev&&iso(addDays(fromIso(prev),7))===k&&cur>0)?cur+1:1; best=Math.max(best,cur); prev=k; });
+  return {any:Object.values(by).some(n=>n>=S.prefs.goal), best};
+}
+function badgeStats(){
+  const ws=S.history.map(h=>W(h.id)).filter(Boolean);
+  return { n:S.history.length, mins:S.history.reduce((a,h)=>a+h.min,0), ls:longestStreak(), wk:weekRun(),
+    classic:ws.some(w=>w.classic), bw:ws.some(w=>w.bw), mob:ws.filter(w=>w.mob).length,
+    fmts:new Set(ws.filter(w=>!w.classic&&!w.mob).map(w=>w.fmt)).size,
+    friend:signedIn()&&CL.friends.length>0, chal:S.contests.length>0||(signedIn()&&CL.chals.some(c=>c.joined)) };
+}
+// [id, name, how to earn, short mark, test]
+const BADGES=[
+ ['first','First Rep','Finish your first workout','1',x=>x.n>=1],
+ ['w5','Warming Up','Finish 5 workouts','5',x=>x.n>=5],
+ ['w10','Ten Down','Finish 10 workouts','10',x=>x.n>=10],
+ ['w25','Quarter Century','Finish 25 workouts','25',x=>x.n>=25],
+ ['w50','Fifty Strong','Finish 50 workouts','50',x=>x.n>=50],
+ ['w100','Centurion','Finish 100 workouts','100',x=>x.n>=100],
+ ['s3','On a Roll','Train 3 days in a row','3D',x=>x.ls>=3],
+ ['s7','Full Week','Train 7 days in a row','7D',x=>x.ls>=7],
+ ['s30','Unbreakable','Train 30 days in a row','30D',x=>x.ls>=30],
+ ['m100','Hundred Club','Train 100 minutes in total','100M',x=>x.mins>=100],
+ ['m500','Iron Lungs','Train 500 minutes in total','500M',x=>x.mins>=500],
+ ['m1000','Thousand Minute Forge','Train 1,000 minutes in total','1K',x=>x.mins>=1000],
+ ['goal1','Goal Getter','Hit your weekly goal once','GOAL',x=>x.wk.any],
+ ['goal4','Habit Formed','Hit your weekly goal 4 weeks in a row','4WK',x=>x.wk.best>=4],
+ ['classic','Old School','Finish a Kettlebell Classic','CL',x=>x.classic],
+ ['formats','Format Master','Finish all six workout formats','6F',x=>x.fmts>=6],
+ ['bw','No Bell, No Problem','Finish a bodyweight workout','BW',x=>x.bw],
+ ['mob5','Mobility Minded','Finish 5 stretch sessions','5S',x=>x.mob>=5],
+ ['friend','Crew','Add your first friend','FR',x=>x.friend],
+ ['chal','Challenger','Start or join a challenge','CH',x=>x.chal]
+].map(([id,name,how,mark,test])=>({id,name,how,mark,test}));
+function checkBadges(){ S.badges=S.badges||{}; const x=badgeStats(); const fresh=[];
+  BADGES.forEach(b=>{ if(!S.badges[b.id] && b.test(x)){ S.badges[b.id]=iso(TODAY); fresh.push(b); } }); return fresh; }
+function celebrate(fresh){ if(!fresh.length) return; save();
+  toast(fresh.length===1?`New badge: ${fresh[0].name}`:`${fresh.length} new badges: ${fresh.map(b=>b.name).join(', ')}`);
+  if(signedIn() && fresh.length<=2) fresh.forEach(b=>postActivity(`Earned the ${b.name} badge`,null,'challenge')); }
+function badgeIcon(b,earned,size){ const sz=size||56;
+  return `<svg viewBox="0 0 64 64" width="${sz}" height="${sz}" aria-hidden="true"><path d="M32 3 L57 17.5 V46.5 L32 61 L7 46.5 V17.5 Z" style="fill:${earned?'var(--accent)':'var(--surface-2)'};stroke:${earned?'var(--accent)':'var(--line)'};stroke-width:2"/>
+    <path d="M32 9 L52 20.5 V43.5 L32 55 L12 43.5 V20.5 Z" style="fill:none;stroke:${earned?'rgba(255,255,255,.45)':'var(--line)'};stroke-width:1.5"/>
+    <text x="32" y="${b.mark.length>3?37:39}" text-anchor="middle" style="font-family:var(--display);font-weight:800;font-size:${b.mark.length>3?13:b.mark.length>2?16:19}px;fill:${earned?'#fff':'var(--muted)'}">${esc(b.mark)}</text></svg>`; }
+function levelPanel(){
+  const xp=totalXP(), lv=levelFor(xp), got=BADGES.filter(b=>S.badges&&S.badges[b.id]).length;
+  return `<div class="panel" style="margin-bottom:16px">
+    <div class="row between" style="align-items:flex-end"><div><div class="lbl">Your level</div><div class="big num">Level ${lv.L}<small> · ${rankFor(lv.L)}</small></div></div>
+      <div style="text-align:right"><div class="lbl">Total XP</div><div class="num" style="font-weight:700;font-size:20px">${xp.toLocaleString()}</div></div></div>
+    <div class="bar" style="margin-top:12px;height:10px"><i style="width:${Math.round(lv.into/lv.need*100)}%"></i></div>
+    <p class="small muted" style="margin-top:6px">${lv.toNext.toLocaleString()} XP to level ${lv.L+1}${rankFor(lv.L+1)!==rankFor(lv.L)?` (${rankFor(lv.L+1)})`:''}. Every session earns 50 XP plus 10 per minute.</p>
+    <div class="row between" style="margin-top:18px"><h3>Badges</h3><span class="small muted">${got} of ${BADGES.length}</span></div>
+    <div class="badges">${BADGES.map(b=>{ const e=S.badges&&S.badges[b.id]; return `<div class="badge ${e?'on':''}" title="${esc(b.how)}">${badgeIcon(b,e)}<b>${esc(b.name)}</b><span>${e?'Earned '+fromIso(e).toLocaleDateString('en-US',{month:'short',day:'numeric'}):esc(b.how)}</span></div>`; }).join('')}</div>
+  </div>`;
+}
 
 /* ---------- First-time setup ---------- */
 UI.setup={name:'',level:1,goal:3,bell:true};
@@ -1189,6 +1309,8 @@ function todayMore(pick){
   items.push(`<div class="rowitem"><div class="who"><b>${esc(c.name)}</b><span class="small muted">Classic of the week · ${c.dur} min</span></div><button class="btn sm" data-act="open" data-id="${c.id}">View</button></div>`);
   if(!pick.bw){ const b=bwPick(); items.push(`<div class="rowitem"><div class="who"><b>${esc(b.name)}</b><span class="small muted">No bell today? Bodyweight · ${b.dur} min</span></div><button class="btn sm" data-act="open" data-id="${b.id}">View</button></div>`); }
   else { const k=todaysPick(); items.push(`<div class="rowitem"><div class="who"><b>${esc(k.name)}</b><span class="small muted">Kettlebell · ${k.dur} min</span></div><button class="btn sm" data-act="open" data-id="${k.id}">View</button></div>`); }
+  { const trainedToday=S.history.some(h=>h.d===iso(TODAY)&&!(W(h.id)&&W(h.id).mob)); const m=mobByName(trainedToday?'Post-Workout Cool-Down':'Rest Day Recovery');
+    items.push(`<div class="rowitem"><div class="who"><b>${esc(m.name)}</b><span class="small muted">${trainedToday?'Stretch after today\'s workout':'Stretch & mobility'} · ${m.dur} min</span></div><button class="btn sm" data-act="start" data-id="${m.id}">Start</button></div>`); }
   if(!ids.length) items.push(`<div class="rowitem"><div class="who"><b>Follow a program</b><span class="small muted">Multi-week plans that get harder each week</span></div><button class="btn sm" data-act="nav" data-v="programs">Browse</button></div>`);
   return `<div class="panel"><span class="lbl">Or try</span>${items.join('')}</div>`;
 }
@@ -1196,7 +1318,7 @@ function vToday(){
   const pick=S.prefs.hasBell===false?bwPick():todaysPick(); const st=streak(); const wk=weekDays(); const done=new Set(S.history.map(h=>h.d));
   const weekCount=sessionsBetween(iso(wk[0]),iso(wk[6])).length; const left=S.prefs.goal-weekCount;
   return `
-  <div class="head"><div><h1>${greet()}, ${esc(S.profile.name)}</h1><p class="sub">${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</p></div></div>
+  <div class="head"><div><h1>${greet()}, ${esc(S.profile.name)}</h1><p class="sub">${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}<button class="lvchip" data-act="nav" data-v="progress">Level ${levelFor(totalXP()).L} · ${rankFor(levelFor(totalXP()).L)}</button></p></div></div>
   <div class="grid g2">
     <div class="stack16">
       <div class="panel">
@@ -1228,18 +1350,18 @@ function vWorkouts(){
   const F=UI.filters;
   const opt=(arr,cur)=>arr.map(([v,l])=>`<option value="${v}" ${cur===v?'selected':''}>${l}</option>`).join('');
   return `
-  <div class="head"><div><h1>Workouts</h1><p class="sub">${F.mode==='bw'?'Bonus: 100 no-equipment sessions built from 24 bodyweight moves, for days without your bell.':F.mode==='classic'?'Time-tested kettlebell workouts from well-known coaches, built the way they are usually done.':'200 kettlebell sessions built from 26 core moves, beginner to advanced, each with a muscle map and form guide.'}</p></div>
-    <div class="seg" role="group" aria-label="Workout type"><button data-act="fmode" data-m="kb" aria-pressed="${F.mode==='kb'}">Kettlebell</button><button data-act="fmode" data-m="classic" aria-pressed="${F.mode==='classic'}">Classics</button><button data-act="fmode" data-m="bw" aria-pressed="${F.mode==='bw'}">Bodyweight</button></div></div>
+  <div class="head"><div><h1>Workouts</h1><p class="sub">${F.mode==='mob'?`Warm-ups, cool-downs and mobility sessions from ${MOB_EX.length} stretches. Short, guided and good for rest days.`:F.mode==='bw'?'Bonus: 100 no-equipment sessions built from 24 bodyweight moves, for days without your bell.':F.mode==='classic'?'Time-tested kettlebell workouts from well-known coaches, built the way they are usually done.':'200 kettlebell sessions built from 26 core moves, beginner to advanced, each with a muscle map and form guide.'}</p></div>
+    <div class="seg" role="group" aria-label="Workout type"><button data-act="fmode" data-m="kb" aria-pressed="${F.mode==='kb'}">Kettlebell</button><button data-act="fmode" data-m="classic" aria-pressed="${F.mode==='classic'}">Classics</button><button data-act="fmode" data-m="bw" aria-pressed="${F.mode==='bw'}">Bodyweight</button><button data-act="fmode" data-m="mob" aria-pressed="${F.mode==='mob'}">Stretch</button></div></div>
   <div class="filters">
-    <div class="seg" role="group" aria-label="Level">
+    ${F.mode==='mob'?'':`<div class="seg" role="group" aria-label="Level">
       <button data-act="flv" data-l="0" aria-pressed="${F.lv===0}">All</button>
       ${[1,2,3].map(l=>`<button class="${LV[l].cls}" data-act="flv" data-l="${l}" aria-pressed="${F.lv===l}"><span class="dot"></span>${LV[l].name}</button>`).join('')}
-    </div>
+    </div>`}
     <input type="text" class="search" id="wq" placeholder="Search by name, exercise or code" value="${esc(F.q)}" aria-label="Search workouts">
   </div>
   <div class="filters">
-    <select id="ff" data-ch="focus" aria-label="Focus"><option value="">Any focus</option>${opt(['Full body','Lower body','Upper body','Core','Conditioning'].map(x=>[x,x]),F.focus)}</select>
-    ${F.mode==='classic'?'':`<select id="ft" data-ch="fmt" aria-label="Format"><option value="">Any format</option>${opt(Object.entries(FMT).filter(([k])=>k!=='classic'&&!(F.mode==='bw'&&k==='complex')).map(([k,v])=>[k,v.name]),F.fmt)}</select>`}
+    ${F.mode==='mob'?'':`<select id="ff" data-ch="focus" aria-label="Focus"><option value="">Any focus</option>${opt(['Full body','Lower body','Upper body','Core','Conditioning'].map(x=>[x,x]),F.focus)}</select>`}
+    ${F.mode==='classic'||F.mode==='mob'?'':`<select id="ft" data-ch="fmt" aria-label="Format"><option value="">Any format</option>${opt(Object.entries(FMT).filter(([k])=>k!=='classic'&&k!=='mobility'&&!(F.mode==='bw'&&k==='complex')).map(([k,v])=>[k,v.name]),F.fmt)}</select>`}
     <select id="fd" data-ch="dur" aria-label="Duration"><option value="">Any length</option>${opt([['s','15 min or less'],['m','16–25 min'],['l','26–40 min'],['x','Over 40 min']],F.dur)}</select>
     ${F.mode!=='kb'?'':`<select id="fe" data-ch="equip" aria-label="Equipment"><option value="">Any equipment</option>${opt([['Single bell','Single bell'],['Double bells','Double bells']],F.equip)}</select>`}
     <button class="btn sm" data-act="fsaved" aria-pressed="${F.saved}">Saved offline (${S.saved.length})</button>
@@ -1252,8 +1374,8 @@ function vWorkouts(){
 function filtered(){
   const F=UI.filters, q=F.q.trim().toLowerCase();
   return WORKOUTS.filter(w=>{
-    if(F.mode==='classic'){ if(!w.classic) return false; } else { if(w.classic) return false; if(!!w.bw!==(F.mode==='bw')) return false; }
-    if(F.lv && w.lv!==F.lv) return false;
+    if(F.mode==='mob'){ if(!w.mob) return false; } else if(F.mode==='classic'){ if(!w.classic) return false; } else { if(w.classic||w.mob) return false; if(!!w.bw!==(F.mode==='bw')) return false; }
+    if(F.lv && !w.mob && w.lv!==F.lv) return false;
     if(F.focus && w.focus!==F.focus) return false;
     if(F.fmt && w.fmt!==F.fmt) return false;
     if(F.equip && w.equip!==F.equip) return false;
@@ -1268,7 +1390,7 @@ function card(w){
   return `<article class="wcard ${LV[w.lv].cls}">
     <div class="thumb">${pic(w.items[0].ex)}</div>
     <div><div class="code">${w.code}</div><h3>${esc(w.name)}</h3>
-      <div class="meta">${w.classic?esc(w.credit)+' · ':''}${LV[w.lv].name} · ${w.classic?'':FMT[w.fmt].name+' · '}${w.dur} min · ${w.focus}${w.bw&&w.gear.length?' · uses '+esc(w.gear.join(', ').toLowerCase()):''}</div>${w.items.some(i=>EXM[i.ex].needsBuy)&&!S.prefs.bar?'<div style="margin-top:4px"><span class="chip pill-warn">No bar: pull-ups swapped for table rows</span></div>':''}
+      <div class="meta">${w.classic?esc(w.credit)+' · ':''}${w.mob?'All levels · ':LV[w.lv].name+' · '}${w.classic||w.mob?'':FMT[w.fmt].name+' · '}${w.dur} min · ${w.focus}${w.bw&&w.gear.length?' · uses '+esc(w.gear.join(', ').toLowerCase()):''}</div>${w.items.some(i=>EXM[i.ex].needsBuy)&&!S.prefs.bar?'<div style="margin-top:4px"><span class="chip pill-warn">No bar: pull-ups swapped for table rows</span></div>':''}
       <div class="moves">${w.items.map(i=>esc(EXM[i.ex].name)).join(' · ')}</div></div>
     <div class="acts"><button class="btn sm" data-act="open" data-id="${w.id}">Form guide</button><button class="btn sm" data-act="save" data-id="${w.id}" aria-pressed="${sv}">${sv?'Saved':'Save offline'}</button><button class="btn sm pri" data-act="start" data-id="${w.id}">Start</button></div>
   </article>`;
@@ -1282,7 +1404,7 @@ function renderList(){
 }
 function vDetail(w){
   const sv=S.saved.includes(w.id);
-  const structure = w.classic? w.score : w.fmt==='circuit'?`${w.rounds} rounds · ${restMoveSecs(w)}s between moves · ${restRoundSecs(w)}s between rounds`
+  const structure = (w.classic||w.mob)? w.score : w.fmt==='circuit'?`${w.rounds} rounds · ${restMoveSecs(w)}s between moves · ${restRoundSecs(w)}s between rounds`
     : w.fmt==='emom'?`${w.minutes} minutes, rotating through ${w.items.length} moves`
     : w.fmt==='amrap'?`${w.minutes} minutes, as many rounds as possible`
     : w.fmt==='ladder'?`Rungs of ${w.rungs.join(', ')} · ${restRoundSecs(w)}s between rungs`
@@ -1293,10 +1415,10 @@ function vDetail(w){
   <div class="panel">
     <div class="dhead">
       <div><div class="code">${w.code}</div><h1 style="margin-top:4px">${esc(w.name)}</h1>
-        ${w.classic?`<p style="margin-top:6px;font-weight:600">${esc(w.credit)}</p><p class="muted" style="margin-top:4px;max-width:62ch">${esc(w.about)}</p>`:`<p class="muted" style="margin-top:6px;max-width:62ch">${FMT[w.fmt].desc}</p>`}
+        ${w.mob?`<p class="muted" style="margin-top:6px;max-width:62ch">${esc(w.about)}</p>`:''}${w.classic?`<p style="margin-top:6px;font-weight:600">${esc(w.credit)}</p><p class="muted" style="margin-top:4px;max-width:62ch">${esc(w.about)}</p>`:`<p class="muted" style="margin-top:6px;max-width:62ch">${FMT[w.fmt].desc}</p>`}
         <div class="facts">
           <div><span>Level</span><b><span class="chip lvchip ${LV[w.lv].cls}" style="font-size:13px">${LV[w.lv].name}</span></b></div>
-          <div><span>Format</span><b>${w.classic?'Kettlebell classic':FMT[w.fmt].name}</b></div>
+          <div><span>Format</span><b>${w.classic?'Kettlebell classic':w.mob?'Stretch & mobility':FMT[w.fmt].name}</b></div>
           <div><span>Time</span><b class="num">${w.dur} min</b></div>
           <div><span>Focus</span><b>${w.focus}</b></div>
           ${w.bw?`<div><span>Uses</span><b>${w.gear.length?esc(w.gear.map(g=>g==='Pull-up bar'&&!S.prefs.bar?'Sturdy table (bar optional)':g).join(', ')):'Nothing'}</b></div>`:`<div><span>Suggested bell</span><b>${LV[w.lv].bell}${w.equip==='Double bells'?' × 2':''}</b></div>`}
@@ -1349,14 +1471,19 @@ function finish(){
   stopTimer(); T.done=true; beep(990,.35);
   const min=Math.max(1,Math.round(T.elapsed/60));
   const hw=T.wobj||(T.wid?W(T.wid):null);
+  const xpBefore=totalXP(), lvBefore=levelFor(xpBefore).L;
   S.history.push({d:iso(TODAY),id:T.wid||0,min,name:T.title,lv:hw?hw.lv:0,fmt:hw?hw.fmt:'custom',bw:!!(hw&&hw.bw),moves:hw?hw.items.map(i=>i.ex):[T.steps[0]&&T.steps[0].ex].filter(Boolean),secs:Math.round(T.elapsed),rounds:T.rounds||0});
   if(T.prog && S.enrolled[T.prog.pid] && !S.enrolled[T.prog.pid].done.includes(T.prog.k)) S.enrolled[T.prog.pid].done.push(T.prog.k);
   S.feed.unshift({t:Date.now(),txt:`You finished ${T.title} (${min} min)`});
+  const lvAfter=levelFor(totalXP()).L, newBadges=checkBadges();
+  T.reward={xp:totalXP()-xpBefore, L:lvAfter, up:lvAfter>lvBefore, badges:newBadges};
   const done=S.history.filter(h=>!h.sample).length;
   const askReview = done>=3 && !S.reviewAsked;
   if(askReview) S.reviewAsked=true;
-  save(); route(); toast('Session logged. Your streak and challenges are updated.');
-  if(signedIn()){ postActivity(`Finished ${T.title}`,min,'workout'); syncScores(); }
+  save(); route(); toast(T.reward.up?`Level up! You're level ${lvAfter}: ${rankFor(lvAfter)}`:newBadges.length?`New badge: ${newBadges[0].name}`:`+${T.reward.xp} XP. Session logged.`);
+  if(signedIn()){ postActivity(`Finished ${T.title}`,min,'workout'); syncScores();
+    if(T.reward.up) postActivity(`Reached level ${lvAfter} (${rankFor(lvAfter)})`,null,'challenge');
+    newBadges.forEach(b=>postActivity(`Earned the ${b.name} badge`,null,'challenge')); }
   if(askReview) setTimeout(()=>{ try{ const P=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.InAppReview; if(P&&P.requestReview) P.requestReview().catch(()=>{}); }catch(e){} },1800);
 }
 function vTimer(){
@@ -1380,7 +1507,7 @@ function vTimer(){
       </form>
     </div>`;
   }
-  const hasRest=T.steps.some(x=>x.k==='rest'), canSet=T.wobj&&T.wobj.fmt!=='classic'&&T.wobj.fmt!=='tabata'&&hasRest;
+  const hasRest=T.steps.some(x=>x.k==='rest'), canSet=T.wobj&&!T.wobj.mob&&T.wobj.fmt!=='classic'&&T.wobj.fmt!=='tabata'&&hasRest;
   return `<div class="head thead"><div><h1>${esc(T.title)}</h1><p class="sub">${T.wid?W(T.wid).code+' · ':''}about ${Math.round((T.steps.reduce((a,s)=>a+s.secs,0))/60)} min${canSet?` · rest ${restMoveSecs(T.wobj)}s <button class="backlink" data-act="nav" data-v="progress" style="text-decoration:underline">change</button>`:''}</p></div>
     <button class="btn sm" data-act="tclear">Close</button></div>
   <div class="timer">
@@ -1401,7 +1528,9 @@ function vTimer(){
 function renderTimerStage(){
   const box=$('#tstage'); if(!box) return;
   const st=T.steps[T.i]; const w=T.wobj||(T.wid?W(T.wid):null);
-  if(T.done){ box.innerHTML=`<h2>Session complete</h2><p class="muted" style="margin-top:6px">${Math.max(1,Math.round(T.elapsed/60))} minutes logged. Streak: ${streak()} days.</p><div class="row" style="margin-top:12px"><button class="btn pri" data-act="shareworkout">Share your workout</button><button class="btn" data-act="nav" data-v="progress">See your progress</button><button class="btn ghost" data-act="treset">Do it again</button></div>`; renderSteps(); return; }
+  if(T.done){ const rw=T.reward||{xp:0,badges:[]}; box.innerHTML=`<h2>Session complete</h2>
+    <div class="reward"><div><div class="big num" style="font-size:30px;color:var(--accent)">+${rw.xp} XP</div><p class="small" style="margin-top:2px">${rw.up?`<b>Level up!</b> You're now level ${rw.L}: ${rankFor(rw.L)}.`:`Level ${levelFor(totalXP()).L} · ${levelFor(totalXP()).toNext} XP to go`}</p></div>
+      ${rw.badges.length?`<div class="row" style="margin-left:auto;gap:6px">${rw.badges.slice(0,3).map(b=>`<div style="text-align:center">${badgeIcon(b,true,44)}<div class="small" style="font-weight:600">${esc(b.name)}</div></div>`).join('')}</div>`:''}</div><p class="muted" style="margin-top:6px">${Math.max(1,Math.round(T.elapsed/60))} minute${Math.max(1,Math.round(T.elapsed/60))===1?'':'s'} logged. Streak: ${streak()} day${streak()===1?'':'s'}.</p>${T.wobj&&!T.wobj.mob?`<div class="note" style="margin-top:12px"><span><b>Cool down?</b> A ${mobByName('Post-Workout Cool-Down').dur}-minute stretch helps you recover. <button class="btn sm" data-act="start" data-id="${mobByName('Post-Workout Cool-Down').id}" style="margin-left:6px">Start cool-down</button></span></div>`:''}<div class="row" style="margin-top:12px"><button class="btn pri" data-act="shareworkout">Share your workout</button><button class="btn" data-act="nav" data-v="progress">See your progress</button><button class="btn ghost" data-act="treset">Do it again</button></div>`; renderSteps(); return; }
   let exId=st.ex, head='', sub='';
   if(st.k==='amrap' && w){ exId=w.items[T.amrapIdx].ex; head=st.label; sub=`Rounds logged: <b class="num" id="trounds">${T.rounds}</b>`; }
   else if(st.k==='rest'){ head=st.label; sub='Up next: '+esc(EXM[st.ex].name); }
@@ -1425,7 +1554,7 @@ function updateTimerUI(){
   if(!$('#tstage').innerHTML) renderTimerStage();
   const st=T.steps[T.i];
   d.textContent=T.done?'Done':mmss(T.left);
-  const ph=$('#tphase'); ph.textContent=T.done?'Logged':st.k==='rest'?'Rest':st.k==='ready'?'Get ready':st.k==='amrap'?'AMRAP':'Work';
+  const ph=$('#tphase'); ph.textContent=T.done?'Logged':st.k==='rest'?(T.wobj&&T.wobj.mob?'Next':'Rest'):st.k==='ready'?'Get ready':st.k==='amrap'?'AMRAP':(T.wobj&&T.wobj.mob?'Stretch':'Work');
   ph.className='tphase '+(st.k==='rest'?'rest':st.k==='ready'?'':'work');
   $('#tring').setAttribute('stroke-dashoffset',(552.9*(1-Math.max(0,T.left)/st.secs)).toFixed(1));
   $('#tring').setAttribute('stroke',st.k==='rest'?'var(--good)':'var(--accent)');
@@ -1483,6 +1612,8 @@ const TEMPLATES = [
  ['Level & format','Ladder League','Most ladder sessions in 14 days.','format',14,{fmt:'ladder'}],
  ['Level & format','Complex Crew','Most complex sessions in 14 days.','format',14,{fmt:'complex'}],
  ['Level & format','Circuit Sprint','Most circuits in seven days.','format',7,{fmt:'circuit'}],
+ ['Mobility','Mobility Week','Five stretch sessions in seven days.','format',7,{fmt:'mobility',target:5}],
+ ['Mobility','Recovery Month','Twelve stretch sessions in 30 days.','format',30,{fmt:'mobility',target:12}],
  ['Seasonal','Thanksgiving Burn-Off','Most minutes in the seven days around Thanksgiving.','minutes',7,{}],
  ['Seasonal','Holiday Hustle','Longest streak through the holidays.','streak',21,{}],
  ['Seasonal','New Year, New Bell','16 sessions in January.','goal',31,{target:16}],
@@ -1498,7 +1629,7 @@ const TEMPLATES = [
  ['Bodyweight','Burpee Battle','Most burpee sessions in 14 days.','move',14,{moves:['bp']}],
  ['Bodyweight','Pull-Up Project','Most pull-up and row sessions in 30 days.','move',30,{moves:['pup','ir']}]
 ].map(([cat,name,desc,metric,days,x],i)=>({i,cat,name,desc,metric,days,...x})).map(t=>(typeof t.wid==='string'&&t.wid.startsWith('c:'))?{...t,wid:classicByName(t.wid.slice(2)).id}:t);
-const TCATS=['All','Classics','Starter','Consistency','Volume','Team','Skill','Level & format','Seasonal','Bodyweight'];
+const TCATS=['All','Classics','Starter','Consistency','Volume','Team','Skill','Mobility','Level & format','Seasonal','Bodyweight'];
 function leaderboard(c,max){
   const sd=standings(c); const team=c.metric==='team'||c.metric==='teams';
   const top=c.target&&!team?c.target:Math.max(1,...sd.map(x=>x.score)); const u=unit(c);
@@ -1567,7 +1698,7 @@ function vFriends(){
       : `<div class="panel slim" style="margin-bottom:16px"><p class="muted">${CL.offline?"You're offline. Your friends will appear when you reconnect.":'Signing you in…'}</p>${CL.offline?'<button class="btn sm" data-act="refresh">Retry</button>':''}</div>`;
   }
   const reqs = on&&CL.incoming.length ? `<div class="panel" style="margin-bottom:16px"><span class="lbl">Friend requests</span>${CL.incoming.map(id=>`<div class="rowitem">${avatar(id)}<div class="who"><b>${esc(pname(id))}</b><span class="handle">${esc(phandle(id))}</span></div><button class="btn pri sm" data-act="faccept" data-id="${id}">Accept</button><button class="btn ghost sm" data-act="fdecline" data-id="${id}" aria-label="Decline">✕</button></div>`).join('')}</div>` : '';
-  const feed=CL.acts.slice(0,15).map(a=>`<div class="rowitem"><div class="who"><span><b style="display:inline">${esc(pname(a.user_id))}</b> ${esc(a.title.replace(/^(Finished|Started|Joined)/,m=>m.toLowerCase()))}${a.minutes?` · ${a.minutes} min`:''}</span></div><span class="small muted" style="white-space:nowrap">${agoTxt(a.created_at)}</span></div>`).join('');
+  const feed=CL.acts.slice(0,15).map(a=>`<div class="rowitem"><div class="who"><span><b style="display:inline">${esc(pname(a.user_id))}</b> ${esc(a.title.replace(/^(Finished|Started|Joined|Earned|Reached)/,m=>m.toLowerCase()))}${a.minutes?` · ${a.minutes} min`:''}</span></div><span class="small muted" style="white-space:nowrap">${agoTxt(a.created_at)}</span></div>`).join('');
   return `
   <div class="head"><div><h1>Friends</h1><p class="sub">${sub}</p></div><button class="btn pri" data-act="invite">Invite friends</button></div>
   ${on&&CL.offline?`<p class="small muted" style="margin:-6px 0 12px">Offline. Showing your last update.</p>`:''}
@@ -1632,6 +1763,7 @@ function vProgress(){
   const recent=S.history.slice(-10).reverse();
   return `
   <div class="head"><div><h1>Your progress</h1><p class="sub">${esc(P.name)} · training since ${fromIso(P.created).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</p></div></div>
+  ${levelPanel()}
   <div class="grid g4" style="margin-bottom:16px">
     <div class="panel tile"><div class="k">Workouts</div><div class="v num">${tot}</div></div>
     <div class="panel tile"><div class="k">Minutes</div><div class="v num">${mins.toLocaleString()}</div></div>
@@ -1694,7 +1826,7 @@ const PROGRAMS=[
  {id:'p9',bw:true,name:'First Pull-Up',lv:[2,3],weeks:6,per:3,hero:'pup',desc:'Bonus: inverted rows, hollow holds and pull-ups to earn your first strict rep.',moves:['ir','hh','pup']}
 ];
 PROGRAMS.forEach(p=>{
-  const pool=WORKOUTS.filter(w=>!w.classic && !!w.bw===!!p.bw && (!p.bw||p.moves||!w.gear.length) && p.lv.includes(w.lv) && (!p.fmts||p.fmts.includes(w.fmt)) && (!p.moves||w.items.some(i=>p.moves.includes(i.ex)))).sort((a,b)=>a.lv-b.lv||a.dur-b.dur);
+  const pool=WORKOUTS.filter(w=>!w.classic && !w.mob && !!w.bw===!!p.bw && (!p.bw||p.moves||!w.gear.length) && p.lv.includes(w.lv) && (!p.fmts||p.fmts.includes(w.fmt)) && (!p.moves||w.items.some(i=>p.moves.includes(i.ex)))).sort((a,b)=>a.lv-b.lv||a.dur-b.dur);
   const n=p.weeks*p.per; p.n=n; p.sched=[...Array(n)].map((_,k)=>pool[Math.min(pool.length-1,Math.floor(k*pool.length/n))].id);
 });
 const PM=Object.fromEntries(PROGRAMS.map(p=>[p.id,p]));
@@ -1902,7 +2034,7 @@ const ACT={
   save:b=>{ const id=+b.dataset.id; const i=S.saved.indexOf(id); if(i>=0){ S.saved.splice(i,1); toast('Removed from offline library'); } else { S.saved.push(id); toast('Saved. Available offline in the app.'); } save();
     const on=S.saved.includes(id); b.setAttribute('aria-pressed',on); b.textContent= b.closest('.wcard')?(on?'Saved':'Save offline'):(on?'Saved for offline':'Save for offline');
     const fb=document.querySelector('[data-act="fsaved"]'); if(fb) fb.textContent=`Saved offline (${S.saved.length})`; },
-  start:b=>{ const w0=W(+b.dataset.id); const {w,swapped}=withSwaps(w0); loadTimer(w0.fmt==='classic'?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); if(location.hash==='#timer') route(); else location.hash='timer'; },
+  start:b=>{ const w0=W(+b.dataset.id); const {w,swapped}=withSwaps(w0); loadTimer((w0.fmt==='classic'||w0.mob)?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); if(location.hash==='#timer') route(); else location.hash='timer'; },
   challenge:b=>{ const w=W(+b.dataset.id); UI.contestDraft={name:(w.name+' Showdown').slice(0,40),metric:'workout',days:7,wid:w.id,stake:''}; location.hash='friends'; },
   ttoggle:()=>{ if(T.done) return; if(T.running) stopTimer(); else startTimer(); updateTimerUI(); },
   tplus:()=>{ const st=T.steps[T.i]; if(!st||st.k!=='rest') return; st.secs+=15; T.left+=15; updateTimerUI(); renderSteps(); },
@@ -1948,8 +2080,8 @@ const ACT={
   tplclear:()=>{ UI.contestDraft=null; route(); },
   penroll:b=>{ S.enrolled[b.dataset.p]={start:iso(TODAY),done:[]}; save(); location.hash='p-'+b.dataset.p; if(location.hash==='#p-'+b.dataset.p) route(); toast('Program started. Your first session is ready.'); },
   pquit:b=>{ delete S.enrolled[b.dataset.p]; save(); route(); },
-  pstart:b=>{ const p=PM[b.dataset.p], k=+b.dataset.k; const w0=W(p.sched[k]); const {w,swapped}=withSwaps(w0); loadTimer(w0.fmt==='classic'?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); T.prog={pid:p.id,k}; location.hash='timer'; },
-  pnext:b=>{ const p=PM[b.dataset.p]; const k=nextSlot(p); if(k<0){ location.hash='p-'+p.id; return; } const w0=W(p.sched[k]); const {w,swapped}=withSwaps(w0); loadTimer(w0.fmt==='classic'?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); T.prog={pid:p.id,k}; location.hash='timer'; },
+  pstart:b=>{ const p=PM[b.dataset.p], k=+b.dataset.k; const w0=W(p.sched[k]); const {w,swapped}=withSwaps(w0); loadTimer((w0.fmt==='classic'||w0.mob)?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); T.prog={pid:p.id,k}; location.hash='timer'; },
+  pnext:b=>{ const p=PM[b.dataset.p]; const k=nextSlot(p); if(k<0){ location.hash='p-'+p.id; return; } const w0=W(p.sched[k]); const {w,swapped}=withSwaps(w0); loadTimer((w0.fmt==='classic'||w0.mob)?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); T.prog={pid:p.id,k}; location.hash='timer'; },
   pchal:b=>{ const p=PM[b.dataset.p]; UI.contestDraft={tpl:true,name:p.name.slice(0,40),desc:`Do the ${p.name} program together. Most program sessions completed wins.`,metric:'sessions',days:p.weeks*7,stake:''}; location.hash='friends'; setTimeout(()=>{ const f=$('#cform'); if(f) f.scrollIntoView(); },50); },
   nudge:b=>{ const id=b.dataset.id; if(!S.nudged.includes(id)){ S.nudged.push(id); S.feed.unshift({t:Date.now(),txt:`You nudged ${friend(id).name}`}); save(); route(); toast(`${friend(id).name} will get a nudge to train today`); } },
   mswap:b=>{ const d=+b.dataset.d, si=+b.dataset.s; const slot=SLOTS[S.meal.mpd][si]; const el=eligible(slot); const cur=el.findIndex(x=>x.id===S.meal.plan[d][si]); S.meal.plan[d][si]=el[(cur+1)%el.length].id; save(); route(); },
@@ -1986,8 +2118,8 @@ document.addEventListener('submit',e=>{
       c={id:'c'+Date.now(),name,metric,start:iso(TODAY),end:iso(addDays(TODAY,days-1)),members,stake:$('#cs').value.trim(),code};
       if(tg>0) c.target=tg; if(metric==='workout' && D.wid) c.wid=D.wid; }
     S.feed.unshift({t:Date.now(),txt:`You started ${name}`}); UI.contestDraft=null; UI.newChal=false; UI.lastInvite=null;
-    if(signedIn()){ createCloudChallenge(c).then(()=>{ save(); route(); toast('Challenge started. Your friends can join it now.'); }).catch(err=>{ S.contests.unshift(c); save(); route(); toast(friendlyErr(err)+' Saved on this phone instead.'); }); return; }
-    S.contests.unshift(c); save(); route(); toast('Challenge started. Create an account so friends can join you.'); }
+    if(signedIn()){ createCloudChallenge(c).then(()=>{ save(); route(); toast('Challenge started. Your friends can join it now.'); setTimeout(()=>celebrate(checkBadges()),1600); }).catch(err=>{ S.contests.unshift(c); save(); route(); toast(friendlyErr(err)+' Saved on this phone instead.'); }); return; }
+    S.contests.unshift(c); save(); route(); toast('Challenge started. Create an account so friends can join you.'); setTimeout(()=>celebrate(checkBadges()),1600); }
   if(f==='auth'){ doAuth(e.target.dataset.mode); return; }
   if(f==='addfriend'){ const v=$('#af').value; UI.addFriend=v; addFriend(v); return; }
   if(f==='username'){ const u=$('#un').value.trim().replace(/^@/,'').toLowerCase(); if(!/^[a-z0-9_]{3,20}$/.test(u)){ toast('Usernames are 3–20 characters: lowercase letters, numbers and _'); return; }
@@ -2001,6 +2133,7 @@ document.addEventListener('submit',e=>{
   if(f==='friend'){ const v=$('#fa').value.trim(); if(!v) return; S.friends.push({id:'u'+Date.now(),name:v.includes('@')?v.split('@')[0]:v,streak:0,mpd:8,spw:3,last:'–',status:'pending'}); save(); route(); toast(`Friend request ready for ${v}`); }
 });
 
+if(!S.badgesInit){ checkBadges(); S.badgesInit=true; save(); }
 route();
 checkForUpdate(true);
 cloudInit();
