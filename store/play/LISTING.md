@@ -171,6 +171,19 @@ Both stores require a public URL. The policy is at `docs/privacy-policy.html` in
 
 ---
 
+## Version 1.0.17 release notes (Play Console > Open testing > Create new release)
+
+Paste only the block below into the release notes box.
+
+```
+<en-US>
+New in this update
+- Compact workout timer: the countdown, the exercise and its form tips fit on one screen
+- Choose your rest: Auto (by your level) or 5 to 45 seconds between moves, and 30 seconds to 2 minutes between rounds (Progress > Settings)
+- +15s button during any rest
+</en-US>
+```
+
 ## Version 1.0.16 release notes (Play Console > Open testing > Create new release)
 
 Paste only the block below into the release notes box.

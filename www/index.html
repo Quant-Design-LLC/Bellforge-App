@@ -177,6 +177,7 @@ body.setup-mode .app{grid-template-columns:1fr}
 .lb:last-child{border-bottom:0}
 .lb.me{font-weight:700}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block}
+[hidden]{display:none !important}
 /* 1.0.14 cleaner layout */
 .big{font-family:var(--display);font-size:38px;font-weight:700;line-height:1;margin-top:4px}
 .big small{font-size:17px;color:var(--muted);font-weight:600}
@@ -323,6 +324,28 @@ pre.payload{background:var(--surface-2);border:1px solid var(--line);border-radi
   .exrow{grid-template-columns:1fr}
   .cols2{grid-template-columns:1fr}
   .dhead{grid-template-columns:1fr}
+}
+@media (max-width:900px){
+  .thead{margin-bottom:8px}
+  .thead h1{font-size:22px}
+  .thead .sub{font-size:13px}
+  .timer{gap:10px}
+  .tpanel{position:sticky;top:env(safe-area-inset-top);z-index:20;display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px 10px;padding:10px 12px;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+  .tpanel .ringwrap{max-width:none;aspect-ratio:auto;margin:0}
+  .tpanel .ringwrap svg{display:none}
+  .tpanel .ringwrap .inner{position:static;flex-direction:row;align-items:baseline;justify-content:flex-start;gap:10px;text-align:left}
+  .tpanel .tdig{font-size:46px}
+  .tpanel .tphase{margin:0;font-size:12px}
+  .tpanel #telapsed{display:none}
+  .tpanel .tctrl{margin:0 !important;gap:6px;flex-wrap:nowrap}
+  .tpanel .tctrl .btn{padding:9px 10px;font-size:14px}
+  .tpanel .tctrl #ttoggle{min-width:84px !important}
+  .tpanel .tctrl2{grid-column:1/-1;margin:0 !important;justify-content:flex-start !important;gap:4px;flex-wrap:wrap}
+  .tpanel .tctrl2 .btn{padding:5px 8px;font-size:12.5px}
+  .tpanel .tbar{grid-column:1/-1;margin:0 !important;height:6px}
+  .tstage{gap:10px}
+  .tstage .stage .pic img{max-height:32vh;width:100%;object-fit:contain}
+  .tstage h2{font-size:22px}
 }
 @media (prefers-reduced-motion: reduce){ .toast{transition:none} }
 </style>
@@ -631,19 +654,24 @@ function rxText(ex,item,w){
   if(item.secs) return item.secs+'s'+side;
   return item.reps+(item.reps===1?' rep':' reps')+side;
 }
+/* Rest settings: Auto follows your fitness level (set in quick setup); anyone can override in Progress > Settings. */
+const REST_AUTO={1:20,2:15,3:10};
+function prefsNow(){ try{ return S.prefs||{}; }catch(e){ return null; } } // null while the library is first built
+function restMoveSecs(w){ const P=prefsNow(); if(!P) return w.restEx; const v=P.restMove; return (v&&v!=='auto')? +v : REST_AUTO[P.level||w.lv]||w.restEx; }
+function restRoundSecs(w){ const P=prefsNow(); if(!P) return w.restRound; const v=P.restRound; return (v&&v!=='auto')? +v : w.restRound; }
 function buildSteps(w){
   const S=[{k:'ready',secs:10,label:'Get ready',ex:w.items[0].ex}];
   const work=(item,reps,round)=>{ const ex=EXM[item.ex]; const rr=(reps!=null?reps:item.reps); const tgt = item.secs? item.secs+'s'+(ex.sided?' / side':'') : rr+(rr===1?' rep':' reps')+(ex.sided?' / side':''); S.push({k:'work',ex:item.ex,secs:workSecs(ex,item,reps),label:ex.name,target:tgt,round}); };
   const rest=(secs,next,label)=>S.push({k:'rest',secs,label:label||'Rest',ex:next});
   const it=w.items;
   if(w.fmt==='circuit'||w.fmt==='complex'){
-    for(let r=1;r<=w.rounds;r++){ it.forEach((item,j)=>{ work(item,null,r); if(j<it.length-1 && w.fmt==='circuit') rest(w.restEx,it[j+1].ex); }); if(r<w.rounds) rest(w.restRound,it[0].ex,'Round rest'); }
+    for(let r=1;r<=w.rounds;r++){ it.forEach((item,j)=>{ work(item,null,r); if(j<it.length-1 && w.fmt==='circuit') rest(restMoveSecs(w),it[j+1].ex); }); if(r<w.rounds) rest(restRoundSecs(w),it[0].ex,'Round rest'); }
   } else if(w.fmt==='emom'){
     for(let m=0;m<w.minutes;m++){ const item=it[m%it.length]; const ex=EXM[item.ex]; S.push({k:'emom',ex:item.ex,secs:60,label:ex.name,target:(item.secs?item.secs+'s':item.reps+' reps')+(ex.sided?' / side':'')+' · then rest',round:m+1}); }
   } else if(w.fmt==='amrap'){
     S.push({k:'amrap',secs:w.minutes*60,label:'AMRAP '+w.minutes+' min',ex:it[0].ex});
   } else if(w.fmt==='ladder'){
-    w.rungs.forEach((rung,ri)=>{ it.forEach(item=>{ const ex=EXM[item.ex]; work(item, item.secs?null:Math.max(1,Math.round(rung*(ex.scale||1))), ri+1); }); if(ri<w.rungs.length-1) rest(w.restRound,it[0].ex,'Rung rest'); });
+    w.rungs.forEach((rung,ri)=>{ it.forEach(item=>{ const ex=EXM[item.ex]; work(item, item.secs?null:Math.max(1,Math.round(rung*(ex.scale||1))), ri+1); }); if(ri<w.rungs.length-1) rest(restRoundSecs(w),it[0].ex,'Rung rest'); });
   } else if(w.fmt==='tabata'){
     it.forEach((item,j)=>{ const ex=EXM[item.ex]; for(let r=1;r<=8;r++){ S.push({k:'work',ex:item.ex,secs:20,label:ex.name,target:'Max effort, good form',round:r}); if(r<8) rest(10,item.ex); } if(j<it.length-1) rest(w.restRound,it[j+1].ex,'Switch exercise'); });
   }
@@ -1254,12 +1282,12 @@ function renderList(){
 }
 function vDetail(w){
   const sv=S.saved.includes(w.id);
-  const structure = w.classic? w.score : w.fmt==='circuit'?`${w.rounds} rounds · ${w.restEx}s between moves · ${w.restRound}s between rounds`
+  const structure = w.classic? w.score : w.fmt==='circuit'?`${w.rounds} rounds · ${restMoveSecs(w)}s between moves · ${restRoundSecs(w)}s between rounds`
     : w.fmt==='emom'?`${w.minutes} minutes, rotating through ${w.items.length} moves`
     : w.fmt==='amrap'?`${w.minutes} minutes, as many rounds as possible`
-    : w.fmt==='ladder'?`Rungs of ${w.rungs.join(', ')} · ${w.restRound}s between rungs`
+    : w.fmt==='ladder'?`Rungs of ${w.rungs.join(', ')} · ${restRoundSecs(w)}s between rungs`
     : w.fmt==='tabata'?`${w.items.length} × 4-minute Tabata blocks · 60s between blocks`
-    : `${w.rounds} rounds without setting the bell down · ${w.restRound}s between rounds`;
+    : `${w.rounds} rounds without setting the bell down · ${restRoundSecs(w)}s between rounds`;
   return `
   <button class="btn ghost sm" data-act="back" style="padding-left:0;margin-bottom:10px">← All workouts</button>${w.bw?'<span class="chip" style="margin-left:8px">Bodyweight bonus</span>':''}
   <div class="panel">
@@ -1304,7 +1332,7 @@ function vDetail(w){
 const T={steps:[],i:0,left:0,running:false,last:0,wid:null,title:'',elapsed:0,rounds:0,done:false,iv:null,beepAt:null,amrapIdx:0};
 let AC=null;
 function beep(f,d){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); const o=AC.createOscillator(),g=AC.createGain(); o.frequency.value=f; o.connect(g); g.connect(AC.destination); g.gain.setValueAtTime(0.12,AC.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d); o.start(); o.stop(AC.currentTime+d); }catch(e){} }
-function loadTimer(steps,wid,title){ stopTimer(); Object.assign(T,{prog:null,wobj:null,steps,i:0,left:steps[0].secs,wid,title,elapsed:0,rounds:0,done:false,beepAt:null,amrapIdx:0}); }
+function loadTimer(steps,wid,title){ stopTimer(); steps=steps.map(x=>({...x})); Object.assign(T,{prog:null,wobj:null,steps,i:0,left:steps[0].secs,wid,title,elapsed:0,rounds:0,done:false,beepAt:null,amrapIdx:0}); }
 function stopTimer(){ T.running=false; clearInterval(T.iv); T.iv=null; }
 function startTimer(){ if(T.done||!T.steps.length) return; T.running=true; T.last=performance.now(); clearInterval(T.iv); T.iv=setInterval(tick,200); beep(660,.12); }
 function goStep(i){ T.i=i; T.left=T.steps[i].secs; T.beepAt=null; T.amrapIdx=0; renderTimerStage(); }
@@ -1352,21 +1380,22 @@ function vTimer(){
       </form>
     </div>`;
   }
-  return `<div class="head"><div><h1>${esc(T.title)}</h1><p class="sub">${T.wid?W(T.wid).code+' · ':''}${T.steps.length} steps · about ${Math.round((T.steps.reduce((a,s)=>a+s.secs,0))/60)} min</p></div>
-    <button class="btn sm" data-act="tclear">Close session</button></div>
+  const hasRest=T.steps.some(x=>x.k==='rest'), canSet=T.wobj&&T.wobj.fmt!=='classic'&&T.wobj.fmt!=='tabata'&&hasRest;
+  return `<div class="head thead"><div><h1>${esc(T.title)}</h1><p class="sub">${T.wid?W(T.wid).code+' · ':''}about ${Math.round((T.steps.reduce((a,s)=>a+s.secs,0))/60)} min${canSet?` · rest ${restMoveSecs(T.wobj)}s <button class="backlink" data-act="nav" data-v="progress" style="text-decoration:underline">change</button>`:''}</p></div>
+    <button class="btn sm" data-act="tclear">Close</button></div>
   <div class="timer">
-    <div class="panel">
+    <div class="panel tpanel">
       <div class="ringwrap"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="88" fill="none" stroke="var(--surface-2)" stroke-width="12"/><circle id="tring" cx="100" cy="100" r="88" fill="none" stroke="var(--accent)" stroke-width="12" stroke-linecap="round" stroke-dasharray="552.9" stroke-dashoffset="0"/></svg>
         <div class="inner"><div class="tdig" id="tdig">0:00</div><div class="tphase" id="tphase"></div><div class="small muted num" id="telapsed"></div></div></div>
-      <div class="row" style="justify-content:center;margin-top:14px">
+      <div class="row tctrl" style="justify-content:center;margin-top:14px">
         <button class="btn" data-act="tback" aria-label="Previous step">Back</button>
         <button class="btn pri" data-act="ttoggle" id="ttoggle" style="min-width:120px">Start</button>
         <button class="btn" data-act="tskip" aria-label="Next step">Next</button>
       </div>
-      <div class="row" style="justify-content:center;margin-top:8px"><button class="btn ghost sm" data-act="treset">Restart</button><button class="btn ghost sm" data-act="tfinish">Finish &amp; log now</button></div>
-      <div class="bar" style="margin-top:14px"><i id="tprog" style="width:0%"></i></div>
+      <div class="row tctrl2" style="justify-content:center;margin-top:8px"><button class="btn sm" data-act="tplus" id="tplus" hidden>+15s rest</button><button class="btn ghost sm" data-act="treset">Restart</button><button class="btn ghost sm" data-act="tfinish">Finish &amp; log now</button></div>
+      <div class="bar tbar" style="margin-top:14px"><i id="tprog" style="width:0%"></i></div>
     </div>
-    <div class="panel"><div id="tstage"></div><div class="steps" id="tsteps"></div></div>
+    <div class="panel"><div id="tstage"></div><details class="fold tstepsfold" ${window.innerWidth>900?'open':''} style="margin-top:12px"><summary>All steps (${T.steps.length})</summary><div class="steps" id="tsteps"></div></details></div>
   </div>`;
 }
 function renderTimerStage(){
@@ -1402,6 +1431,7 @@ function updateTimerUI(){
   $('#tring').setAttribute('stroke',st.k==='rest'?'var(--good)':'var(--accent)');
   $('#telapsed').textContent='Elapsed '+mmss(T.elapsed);
   $('#ttoggle').textContent=T.done?'Done':T.running?'Pause':(T.elapsed>0?'Resume':'Start');
+  const tp=$('#tplus'); if(tp) tp.hidden=!(st&&st.k==='rest'&&!T.done);
   const total=T.steps.reduce((a,s)=>a+s.secs,0), passed=T.steps.slice(0,T.i).reduce((a,s)=>a+s.secs,0)+(st.secs-Math.max(0,T.left));
   $('#tprog').style.width=(T.done?100:passed/total*100).toFixed(1)+'%';
 }
@@ -1624,6 +1654,8 @@ function vProgress(){
       <label class="f" style="flex:1 1 180px">Name<input type="text" id="pf-name" maxlength="30" value="${esc(P.name)}"></label>
       <label class="f">Level<select id="pf-level">${[1,2,3].map(l=>`<option value="${l}" ${S.prefs.level===l?'selected':''}>${LV[l].name}</option>`).join('')}</select></label>
       <label class="f">Weekly goal<select id="pf-goal">${[2,3,4,5,6].map(n=>`<option ${S.prefs.goal===n?'selected':''}>${n}</option>`).join('')}</select></label>
+      <label class="f">Rest between moves<select id="pf-rm"><option value="auto" ${(S.prefs.restMove||'auto')==='auto'?'selected':''}>Auto (${REST_AUTO[S.prefs.level||1]}s for ${LV[S.prefs.level||1].name.toLowerCase()})</option>${[5,10,15,20,30,45].map(n=>`<option value="${n}" ${String(S.prefs.restMove)===String(n)?'selected':''}>${n} seconds</option>`).join('')}</select></label>
+      <label class="f">Rest between rounds<select id="pf-rr"><option value="auto" ${(S.prefs.restRound||'auto')==='auto'?'selected':''}>Auto (set by each workout)</option>${[30,45,60,90,120].map(n=>`<option value="${n}" ${String(S.prefs.restRound)===String(n)?'selected':''}>${n} seconds</option>`).join('')}</select></label>
       <label class="f">Kettlebell<select id="pf-bell"><option value="1" ${S.prefs.hasBell!==false?'selected':''}>I have one</option><option value="0" ${S.prefs.hasBell===false?'selected':''}>Not yet</option></select></label>
       <button class="btn pri" type="submit">Save</button>
     </div>
@@ -1870,9 +1902,10 @@ const ACT={
   save:b=>{ const id=+b.dataset.id; const i=S.saved.indexOf(id); if(i>=0){ S.saved.splice(i,1); toast('Removed from offline library'); } else { S.saved.push(id); toast('Saved. Available offline in the app.'); } save();
     const on=S.saved.includes(id); b.setAttribute('aria-pressed',on); b.textContent= b.closest('.wcard')?(on?'Saved':'Save offline'):(on?'Saved for offline':'Save for offline');
     const fb=document.querySelector('[data-act="fsaved"]'); if(fb) fb.textContent=`Saved offline (${S.saved.length})`; },
-  start:b=>{ const w0=W(+b.dataset.id); const {w,swapped}=withSwaps(w0); loadTimer(w===w0?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); if(location.hash==='#timer') route(); else location.hash='timer'; },
+  start:b=>{ const w0=W(+b.dataset.id); const {w,swapped}=withSwaps(w0); loadTimer(w0.fmt==='classic'?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); if(location.hash==='#timer') route(); else location.hash='timer'; },
   challenge:b=>{ const w=W(+b.dataset.id); UI.contestDraft={name:(w.name+' Showdown').slice(0,40),metric:'workout',days:7,wid:w.id,stake:''}; location.hash='friends'; },
   ttoggle:()=>{ if(T.done) return; if(T.running) stopTimer(); else startTimer(); updateTimerUI(); },
+  tplus:()=>{ const st=T.steps[T.i]; if(!st||st.k!=='rest') return; st.secs+=15; T.left+=15; updateTimerUI(); renderSteps(); },
   tskip:()=>{ if(T.done) return; if(T.i<T.steps.length-1){ goStep(T.i+1); updateTimerUI(); } else finish(); },
   tback:()=>{ if(T.done) return; goStep(Math.max(0,T.i-1)); updateTimerUI(); },
   treset:()=>{ const pg=T.prog, wo=T.wobj; loadTimer(T.steps,T.wid,T.title); T.prog=pg; T.wobj=wo; route(); },
@@ -1915,8 +1948,8 @@ const ACT={
   tplclear:()=>{ UI.contestDraft=null; route(); },
   penroll:b=>{ S.enrolled[b.dataset.p]={start:iso(TODAY),done:[]}; save(); location.hash='p-'+b.dataset.p; if(location.hash==='#p-'+b.dataset.p) route(); toast('Program started. Your first session is ready.'); },
   pquit:b=>{ delete S.enrolled[b.dataset.p]; save(); route(); },
-  pstart:b=>{ const p=PM[b.dataset.p], k=+b.dataset.k; const w0=W(p.sched[k]); const {w,swapped}=withSwaps(w0); loadTimer(w===w0?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); T.prog={pid:p.id,k}; location.hash='timer'; },
-  pnext:b=>{ const p=PM[b.dataset.p]; const k=nextSlot(p); if(k<0){ location.hash='p-'+p.id; return; } const w0=W(p.sched[k]); const {w,swapped}=withSwaps(w0); loadTimer(w===w0?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); T.prog={pid:p.id,k}; location.hash='timer'; },
+  pstart:b=>{ const p=PM[b.dataset.p], k=+b.dataset.k; const w0=W(p.sched[k]); const {w,swapped}=withSwaps(w0); loadTimer(w0.fmt==='classic'?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); T.prog={pid:p.id,k}; location.hash='timer'; },
+  pnext:b=>{ const p=PM[b.dataset.p]; const k=nextSlot(p); if(k<0){ location.hash='p-'+p.id; return; } const w0=W(p.sched[k]); const {w,swapped}=withSwaps(w0); loadTimer(w0.fmt==='classic'?w.steps:buildSteps(w),w0.id,w0.name); T.wobj=w; if(swapped.length) toast('No pull-up bar: swapped '+swapped.join(', ')); T.prog={pid:p.id,k}; location.hash='timer'; },
   pchal:b=>{ const p=PM[b.dataset.p]; UI.contestDraft={tpl:true,name:p.name.slice(0,40),desc:`Do the ${p.name} program together. Most program sessions completed wins.`,metric:'sessions',days:p.weeks*7,stake:''}; location.hash='friends'; setTimeout(()=>{ const f=$('#cform'); if(f) f.scrollIntoView(); },50); },
   nudge:b=>{ const id=b.dataset.id; if(!S.nudged.includes(id)){ S.nudged.push(id); S.feed.unshift({t:Date.now(),txt:`You nudged ${friend(id).name}`}); save(); route(); toast(`${friend(id).name} will get a nudge to train today`); } },
   mswap:b=>{ const d=+b.dataset.d, si=+b.dataset.s; const slot=SLOTS[S.meal.mpd][si]; const el=eligible(slot); const cur=el.findIndex(x=>x.id===S.meal.plan[d][si]); S.meal.plan[d][si]=el[(cur+1)%el.length].id; save(); route(); },
@@ -1963,7 +1996,7 @@ document.addEventListener('submit',e=>{
     S.profile={name,created:iso(TODAY)}; S.prefs.level=U.level; S.prefs.goal=U.goal; S.prefs.hasBell=U.bell; if(!U.bell) UI.filters.mode='bw';
     save(); location.hash='today'; route(); toast('All set, '+name+'. Let\'s train.');
     if(signedIn()){ const upd={display_name:name.slice(0,30),level:U.level}; Object.assign(CL.profile,upd); sb.from('profiles').update(upd).eq('id',uid()).then(()=>{}); } }
-  if(f==='profile'){ const n=$('#pf-name').value.trim(); if(n) S.profile.name=n; S.prefs.level=+$('#pf-level').value; S.prefs.goal=+$('#pf-goal').value; S.prefs.hasBell=$('#pf-bell').value==='1'; save(); route(); toast('Settings saved');
+  if(f==='profile'){ const n=$('#pf-name').value.trim(); if(n) S.profile.name=n; S.prefs.level=+$('#pf-level').value; S.prefs.goal=+$('#pf-goal').value; S.prefs.hasBell=$('#pf-bell').value==='1'; S.prefs.restMove=$('#pf-rm').value; S.prefs.restRound=$('#pf-rr').value; save(); route(); toast('Settings saved');
     if(signedIn()){ const upd={display_name:S.profile.name.slice(0,30),level:S.prefs.level}; Object.assign(CL.profile,upd); sb.from('profiles').update(upd).eq('id',uid()).then(()=>{}); } }
   if(f==='friend'){ const v=$('#fa').value.trim(); if(!v) return; S.friends.push({id:'u'+Date.now(),name:v.includes('@')?v.split('@')[0]:v,streak:0,mpd:8,spw:3,last:'–',status:'pending'}); save(); route(); toast(`Friend request ready for ${v}`); }
 });
